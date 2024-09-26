@@ -12,14 +12,23 @@ import ProfileScreen from '../screens/ProfileScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const HomeTabs = () => (
-  <Tab.Navigator>
-    <Tab.Screen name="Home" component={HomeScreen} />
-    <Tab.Screen name="Search" component={SearchScreen} />
-    <Tab.Screen name="Messages" component={MessageScreen} />
-    <Tab.Screen name="Profile" component={ProfileScreen} />
-  </Tab.Navigator>
-);
+const HomeTabs = ({ route }) => {
+  const { username } = route.params || {}; // username'ı route'dan al
+  const { email } = route.params || {};
+  return (
+    <Tab.Navigator>
+      <Tab.Screen 
+        name="Home" 
+        children={() => <HomeScreen username={username} />} // Kullanıcı adını geç
+      />
+      <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen name="Messages" component={MessageScreen} />
+      <Tab.Screen name="Profile" 
+      children={() => <ProfileScreen username={username} email={email} />}
+      />
+    </Tab.Navigator>
+  );
+};
 
 const AppNavigator = () => {
   return (
