@@ -21,6 +21,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1995AD',
+    fontFamily:'ms-regular',
   },
 });
 

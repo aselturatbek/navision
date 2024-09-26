@@ -28,7 +28,7 @@ const RegisterScreen = ({ navigation }) => {
         });
 
         Alert.alert('Kayıt başarılı!');
-        navigation.replace('HomeTabs'); // Kayıt başarılıysa HomeTabs'a geç
+        navigation.replace('Login'); // Kayıt başarılıysa HomeTabs'a geç
       })
       .catch(error => {
         Alert.alert(error.message);

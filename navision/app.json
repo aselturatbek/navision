@@ -1,5 +1,8 @@
 {
   "expo": {
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "name": "navision",
     "slug": "navision",
     "version": "1.0.0",
@@ -22,6 +25,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "fonts": {
+      "ms-regular": "./assets/fonts/ms-regular.ttf",
+      "ms-bold": "./assets/fonts/ms-bold.ttf",
+      "ms-light": "./assets/fonts/ms-light.ttf",
+      "ms-italic": "./assets/fonts/ms-italic.ttf"
+
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

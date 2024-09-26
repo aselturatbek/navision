@@ -84,6 +84,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1995AD', // Başlık rengi
     marginBottom: 40,
+    fontFamily:'ms-regular'
   },
   input: {
     width: '100%',
