@@ -10,6 +10,7 @@ import SearchScreen from '../screens/SearchScreen';
 import MessageScreen from '../screens/MessageScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SideMenu from '../components/sideMenu';
+import EditProfile from '../components/EditProfile';
 import { Feather } from 'react-native-vector-icons'; // Feather icons
 import * as Font from 'expo-font'; // Import expo-font
 
@@ -48,7 +49,7 @@ const Header = ({ onMenuPress }) => {
 };
 
 const HomeTabs = ({ route, navigation }) => {
-  const { username, email } = route.params || {};
+  const { username, email} = route.params || {};
   const [menuVisible, setMenuVisible] = useState(false);
 
   const toggleMenu = () => {
@@ -120,6 +121,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
         <Stack.Screen name="HomeTabs" component={HomeTabs} options={{ headerShown: false }} />
+        <Stack.Screen name="EditProfile" component={EditProfile} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,19 +1,21 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import EditProfile from '../components/EditProfile';
-const ProfileScreen = ({ username, email, phoneNumber, bio, location }) => {
-  const navigation = useNavigation(); 
+import { MaterialIcons } from '@expo/vector-icons'; // İkonlar için Expo'dan MaterialIcons kullanıyoruz
 
-  const handleEditProfile = () => {
-    navigation.navigate ('EditProfile');
-  };
+const EditProfile = ({ username, email, phoneNumber, bio, location }) => {
   return (
     <View style={styles.container}>
-      <Image 
-        source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Koala_climbing_tree.jpg/640px-Koala_climbing_tree.jpg' }} 
-        style={styles.profileImage} 
-      />
+      <View style={styles.profileContainer}>
+        <Image 
+          source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Koala_climbing_tree.jpg/640px-Koala_climbing_tree.jpg' }} 
+          style={styles.profileImage} 
+        />
+        <TouchableOpacity style={styles.changePhotoButton}>
+          <MaterialIcons name="edit" size={24} color="#1995AD" />
+          <Text style={styles.changePhotoText}>Fotoğrafı Değiştir</Text>
+        </TouchableOpacity>
+      </View>
+      
       <Text style={styles.username}>{username}</Text>
       <View style={styles.infoContainer}>
         <Text style={styles.infoText}>Email: {email}</Text>
@@ -23,7 +25,7 @@ const ProfileScreen = ({ username, email, phoneNumber, bio, location }) => {
       </View>
       
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={handleEditProfile}>
+        <TouchableOpacity style={styles.button}>
           <Text style={styles.buttonText}>Profili Düzenle</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.button}>
@@ -41,21 +43,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F1F1F2',
     padding: 20,
+    marginTop:70
+  },
+  profileContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 20,
     borderWidth: 2,
     borderColor: '#1995AD',
+    marginRight: 10,
+  },
+  changePhotoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  changePhotoText: {
+    fontSize: 16,
+    color: '#1995AD',
+    marginLeft: 5,
+    fontFamily: 'ms-regular',
   },
   username: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#1995AD',
     marginBottom: 10,
-    fontFamily:'ms-regular'
+    fontFamily: 'ms-regular',
   },
   infoContainer: {
     width: '100%',
@@ -91,8 +109,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily:'ms-regular'
+    fontFamily: 'ms-regular',
   },
 });
 
-export default ProfileScreen;
+export default EditProfile;
