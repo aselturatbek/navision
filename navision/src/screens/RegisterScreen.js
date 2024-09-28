@@ -1,93 +1,126 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { auth, database } from '../firebase'; // Firebase konfigürasyonunu içe aktar
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { ref, set } from 'firebase/database'; // Realtime Database işlemleri için içe aktar
+import { View, TextInput, Button, Alert, StyleSheet, Text } from 'react-native';
+import PhoneInput from 'react-native-phone-number-input';
+import { auth, database } from '../firebase'; 
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { ref, set, get } from 'firebase/database';
+import { useNavigation } from '@react-navigation/native';
 
-const RegisterScreen = ({ navigation }) => {
+const RegisterScreen = () => {
+  const navigation = useNavigation(); 
+  const [username, setUsername] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState(''); // Confirm password state ekledik
-  const [username, setUsername] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleRegister = () => {
-    if (password !== confirmPassword) { // Parolaların eşleşip eşleşmediğini kontrol et
-      Alert.alert('Hata', 'Parolalar uyuşmuyor!');
-      return;
+  const checkUsernameExists = async (username) => {
+    const usernameRef = ref(database, 'users/');
+    const snapshot = await get(usernameRef);
+    
+    if (snapshot.exists()) {
+      const users = snapshot.val();
+      return Object.values(users).some(user => user.username === username);
     }
+    
+    return false;
+  };
 
-    createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        // Kayıt başarılı, kullanıcı bilgilerini al
-        const user = userCredential.user;
+  const isEmailValid = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
 
-        // Kullanıcı bilgilerini Realtime Database'e kaydet
-        set(ref(database, 'users/' + user.uid), {
+  const isPasswordValid = (password) => {
+    const re = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+    return re.test(password);
+  };
+
+  const registerUser = async () => {
+    try {
+      // E-posta geçerliliğini kontrol et
+      if (!isEmailValid(email)) {
+        Alert.alert("Hata", "Lütfen geçerli bir e-posta adresi girin.");
+        return;
+      }
+
+      // Şifre geçerliliğini kontrol et
+      if (!isPasswordValid(password)) {
+        Alert.alert("Hata", "Şifre en az 8 karakter, 1 büyük harf, 1 rakam ve 1 özel karakter içermelidir.");
+        return;
+      }
+
+      const usernameExists = await checkUsernameExists(username);
+      if (usernameExists) {
+        Alert.alert("Hata", "Bu kullanıcı adı zaten alınmış.");
+        return;
+      }
+
+      if (password === confirmPassword) {
+        const newUser = await createUserWithEmailAndPassword(auth, email, password);
+        await sendEmailVerification(newUser.user);
+        
+        const userId = newUser.user.uid;
+        await set(ref(database, 'users/' + userId), {
           username: username,
+          phoneNumber: phoneNumber,
           email: email,
         });
 
-        Alert.alert('Kayıt başarılı!');
-        navigation.replace('Login'); // Kayıt başarılıysa HomeTabs'a geç
-      })
-      .catch(error => {
-        Alert.alert(error.message);
-      });
+        Alert.alert("Başarılı", "Kayıt başarılı! E-posta doğrulama linki gönderildi.", [
+          { text: "Tamam", onPress: () => navigation.navigate('Login') }
+        ]);
+      } else {
+        Alert.alert("Hata", "Şifreler uyuşmuyor.");
+      }
+    } catch (error) {
+      Alert.alert("Hata", error.message);
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Register</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Username"
-        value={username}
-        onChangeText={setUsername}
-        placeholderTextColor="#333"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        placeholderTextColor="#333"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        placeholderTextColor="#333"
-      />
+      <Text style={styles.title}>Kayıt Ol</Text>
       
       <TextInput
         style={styles.input}
-        placeholder="Confirm Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-        placeholderTextColor="#333"
+        placeholder="Kullanıcı Adı"
+        value={username}
+        onChangeText={setUsername}
+      />
+      
+      <PhoneInput
+        defaultCode="TR"
+        layout="first"
+        onChangeFormattedText={text => setPhoneNumber(text)}
+        withShadow
+        autoFocus
+        containerStyle={styles.phoneInputContainer}
+        textContainerStyle={styles.textContainer}
       />
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleRegister}
-      >
-        <Text style={styles.buttonText}>Register</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.loginButton}
-        onPress={() => navigation.navigate('Login')}
-      >
-        <Text style={styles.loginText}>Already have an account? Login</Text>
-      </TouchableOpacity>
+      <TextInput
+        style={styles.input}
+        placeholder="E-posta"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Şifre"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Şifreyi Onayla"
+        secureTextEntry
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+      />
+      
+      <Button title="Kayıt Ol" onPress={registerUser} />
     </View>
   );
 };
@@ -95,57 +128,36 @@ const RegisterScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    backgroundColor: '#F1F1F2', // Arka plan rengi
+    backgroundColor: '#f5f5f5',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1995AD', // Başlık rengi
-    marginBottom: 40,
+    textAlign: 'center',
+    marginBottom: 30,
+    color: '#333',
   },
   input: {
-    width: '100%',
     height: 50,
-    backgroundColor: '#A1D6E2', // Giriş alanlarının rengi
-    paddingHorizontal: 15,
+    borderColor: '#ccc',
+    borderWidth: 1,
     borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 15,
+    backgroundColor: '#fff',
     fontSize: 16,
-    color: '#333',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  button: {
-    width: '100%',
+  phoneInputContainer: {
     height: 50,
-    backgroundColor: '#1995AD', // Buton rengi
-    justifyContent: 'center',
-    alignItems: 'center',
     borderRadius: 8,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: 15,
+    backgroundColor: '#fff',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  loginButton: {
-    marginTop: 10,
-  },
-  loginText: {
-    color: '#1995AD', // Login metin rengi
-    fontSize: 16,
+  textContainer: {
+    borderRadius: 8,
+    backgroundColor: '#fff',
   },
 });
 
