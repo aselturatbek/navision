@@ -9,7 +9,7 @@ import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
 import MessageScreen from '../screens/MessageScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import SideMenu from '../components/sideMenu';
+import SideMenu from '../components/SideMenu';
 import EditProfile from '../components/EditProfile';
 import { Feather } from 'react-native-vector-icons'; // Feather icons
 import * as Font from 'expo-font'; // Import expo-font
