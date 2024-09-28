@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Alert, StyleSheet, Text } from 'react-native';
+import { View, TextInput, Button, Alert, StyleSheet, Text, Platform, TouchableOpacity } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
 import { auth, database } from '../firebase'; 
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { ref, set, get } from 'firebase/database';
 import { useNavigation } from '@react-navigation/native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const RegisterScreen = () => {
   const navigation = useNavigation(); 
@@ -13,6 +16,11 @@ const RegisterScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
+  const [surname, setSurname] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState(new Date());
+  const [gender, setGender] = useState('male');
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const checkUsernameExists = async (username) => {
     const usernameRef = ref(database, 'users/');
@@ -38,13 +46,11 @@ const RegisterScreen = () => {
 
   const registerUser = async () => {
     try {
-      // E-posta geçerliliğini kontrol et
       if (!isEmailValid(email)) {
         Alert.alert("Hata", "Lütfen geçerli bir e-posta adresi girin.");
         return;
       }
 
-      // Şifre geçerliliğini kontrol et
       if (!isPasswordValid(password)) {
         Alert.alert("Hata", "Şifre en az 8 karakter, 1 büyük harf, 1 rakam ve 1 özel karakter içermelidir.");
         return;
@@ -65,6 +71,10 @@ const RegisterScreen = () => {
           username: username,
           phoneNumber: phoneNumber,
           email: email,
+          name: name,
+          surname: surname,
+          dateOfBirth: dateOfBirth.toISOString().split('T')[0],
+          gender: gender,
         });
 
         Alert.alert("Başarılı", "Kayıt başarılı! E-posta doğrulama linki gönderildi.", [
@@ -78,49 +88,125 @@ const RegisterScreen = () => {
     }
   };
 
+  const onChangeDate = (event, selectedDate) => {
+    const currentDate = selectedDate || dateOfBirth;
+    setShowDatePicker(false);
+    setDateOfBirth(currentDate);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Kayıt Ol</Text>
       
-      <TextInput
-        style={styles.input}
-        placeholder="Kullanıcı Adı"
-        value={username}
-        onChangeText={setUsername}
-      />
+      <View style={styles.inputContainer}>
+        <Icon name="person-outline" size={20} color="#555" />
+        <TextInput
+          style={styles.input}
+          placeholder="Kullanıcı Adı"
+          value={username}
+          onChangeText={setUsername}
+        />
+      </View>
       
-      <PhoneInput
-        defaultCode="TR"
-        layout="first"
-        onChangeFormattedText={text => setPhoneNumber(text)}
-        withShadow
-        autoFocus
-        containerStyle={styles.phoneInputContainer}
-        textContainerStyle={styles.textContainer}
-      />
+      <View style={styles.inputContainer}>
+        <Icon name="call-outline" size={20} color="#555" />
+        <PhoneInput
+          defaultCode="TR"
+          layout="first"
+          onChangeFormattedText={text => setPhoneNumber(text)}
+          withShadow
+          autoFocus
+          containerStyle={styles.phoneInputContainer}
+          textContainerStyle={styles.textContainer}
+        />
+      </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="E-posta"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Şifre"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Şifreyi Onayla"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-      />
+      <View style={styles.inputContainer}>
+        <Icon name="person" size={20} color="#555" />
+        <TextInput
+          style={styles.input}
+          placeholder="Ad"
+          value={name}
+          onChangeText={setName}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Icon name="person" size={20} color="#555" />
+        <TextInput
+          style={styles.input}
+          placeholder="Soyad"
+          value={surname}
+          onChangeText={setSurname}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Icon name="mail-outline" size={20} color="#555" />
+        <TextInput
+          style={styles.input}
+          placeholder="E-posta"
+          value={email}
+          onChangeText={setEmail}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Icon name="lock-closed-outline" size={20} color="#555" />
+        <TextInput
+          style={styles.input}
+          placeholder="Şifre"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Icon name="lock-closed-outline" size={20} color="#555" />
+        <TextInput
+          style={styles.input}
+          placeholder="Şifreyi Onayla"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+        />
+      </View>
       
-      <Button title="Kayıt Ol" onPress={registerUser} />
+      <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker(true)}>
+        <Icon name="calendar-outline" size={20} color="#fff" />
+        <Text style={styles.datePickerButtonText}>Doğum Tarihini Seç</Text>
+      </TouchableOpacity>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={dateOfBirth}
+          mode="date"
+          display="default"
+          onChange={onChangeDate}
+        />
+      )}
+
+      {dateOfBirth && (
+        <Text style={styles.dateDisplay}>
+          Seçilen Doğum Tarihi: {dateOfBirth.toLocaleDateString()}
+        </Text>
+      )}
+      
+      <Text style={styles.genderLabel}>Cinsiyet</Text>
+      <Picker
+        selectedValue={gender}
+        style={styles.picker}
+        onValueChange={(itemValue) => setGender(itemValue)}
+      >
+        <Picker.Item label="Erkek" value="male" />
+        <Picker.Item label="Kadın" value="female" />
+        <Picker.Item label="Diğer" value="other" />
+      </Picker>
+
+      <TouchableOpacity style={styles.registerButton} onPress={registerUser}>
+        <Text style={styles.registerButtonText}>Kayıt Ol</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -139,25 +225,72 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     color: '#333',
   },
-  input: {
-    height: 50,
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 10,
     marginBottom: 15,
     backgroundColor: '#fff',
+    paddingHorizontal: 10,
+  },
+  input: {
+    height: 50,
+    flex: 1,
     fontSize: 16,
+    paddingLeft: 10,
   },
   phoneInputContainer: {
+    flex: 1,
     height: 50,
-    borderRadius: 8,
-    marginBottom: 15,
-    backgroundColor: '#fff',
   },
   textContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    height: 50,
+  },
+  datePickerButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  datePickerButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  dateDisplay: {
+    fontSize: 16,
+    marginVertical: 10,
+    textAlign: 'center',
+    color: '#555',
+  },
+  genderLabel: {
+    fontSize: 16,
+    marginBottom: 10,
+    color: '#555',
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+    borderColor: '#ccc',
+    borderWidth: 1,
     borderRadius: 8,
     backgroundColor: '#fff',
+    marginBottom: 15,
+  },
+  registerButton: {
+    backgroundColor: '#6200EE',
+    borderRadius: 8,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  registerButtonText: {
+    color: '#fff',
+    fontSize: 18,
   },
 });
 
