@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, Alert, StyleSheet, Text, Platform, TouchableOpacity } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
-import { auth, database } from '../firebase'; 
+import { auth } from '../firebase'; 
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { ref, set, get } from 'firebase/database';
+import { getFirestore, doc, setDoc, getDocs, collection } from 'firebase/firestore'; 
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
@@ -21,17 +21,12 @@ const RegisterScreen = () => {
   const [dateOfBirth, setDateOfBirth] = useState(new Date());
   const [gender, setGender] = useState('male');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const firestore = getFirestore(); // Firestore instance
 
   const checkUsernameExists = async (username) => {
-    const usernameRef = ref(database, 'users/');
-    const snapshot = await get(usernameRef);
+    const snapshot = await getDocs(collection(firestore, 'userInfo'));
     
-    if (snapshot.exists()) {
-      const users = snapshot.val();
-      return Object.values(users).some(user => user.username === username);
-    }
-    
-    return false;
+    return snapshot.docs.some(doc => doc.data().username === username);
   };
 
   const isEmailValid = (email) => {
@@ -67,7 +62,9 @@ const RegisterScreen = () => {
         await sendEmailVerification(newUser.user);
         
         const userId = newUser.user.uid;
-        await set(ref(database, 'users/' + userId), {
+
+        // Firestore'da kullanıcı bilgilerini kaydet
+        await setDoc(doc(firestore, 'userInfo', userId), {
           username: username,
           phoneNumber: phoneNumber,
           email: email,
@@ -275,22 +272,18 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: '100%',
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: '#fff',
     marginBottom: 15,
   },
   registerButton: {
-    backgroundColor: '#6200EE',
+    backgroundColor: '#007BFF',
     borderRadius: 8,
-    paddingVertical: 15,
+    padding: 15,
     alignItems: 'center',
-    marginTop: 20,
   },
   registerButtonText: {
     color: '#fff',
     fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
