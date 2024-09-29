@@ -1,97 +1,138 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import EditProfile from '../components/EditProfile';
-const ProfileScreen = ({ username, email, phoneNumber, bio, location }) => {
-  const navigation = useNavigation(); 
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, Button, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
+import { auth, db } from '../firebase';  // Firestore bağlantısı
+import { doc, getDoc } from 'firebase/firestore';  // Firestore'dan veriyi almak için
 
-  const handleEditProfile = () => {
-    navigation.navigate ('EditProfile');
+
+const ProfileScreen = ({ navigation }) => {
+  const [userInfo, setUserInfo] = useState(null);  // Kullanıcı bilgilerini tutmak için
+  const [bio, setBio] = useState("Kendin hakkında bir şeyler yaz...");
+  const [profileImage, setProfileImage] = useState(null);
+  const [loading, setLoading] = useState(true);  // Yükleme durumunu izlemek için
+
+  // Kullanıcı bilgilerini Firestore'dan çekmek için fonksiyon
+  const fetchUserInfo = async () => {
+    try {
+      const uid = auth.currentUser?.uid;  // Oturum açmış kullanıcının UID'si
+      if (uid) {
+        const docRef = doc(db, 'userInfo', uid);  // Kullanıcı UID'sine göre belge
+        const docSnap = await getDoc(docRef);  // Belgeyi çek
+        if (docSnap.exists()) {
+          const data = docSnap.data();  // Belgede veri varsa al
+          setUserInfo(data);
+          setBio(data.bio || "Kendin hakkında bir şeyler yaz...");
+          setProfileImage(data.profileImage || null);
+        } else {
+          console.log("No such document!");  // Belge bulunmazsa
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user data: ", error);  // Hata olursa
+    } finally {
+      setLoading(false);  // Yükleme durumu bitti
+    }
   };
+
+  useEffect(() => {
+    fetchUserInfo();  // Komponent yüklendiğinde kullanıcı bilgilerini çek
+  }, []);
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#0000ff" />;  // Yükleniyor göstergesi
+  }
+
   return (
     <View style={styles.container}>
-      <Image 
-        source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Koala_climbing_tree.jpg/640px-Koala_climbing_tree.jpg' }} 
-        style={styles.profileImage} 
+      {/* Profil Fotoğrafı */}
+      <Image
+        source={profileImage ? { uri: profileImage } : require('../assets/images/default_cat.jpg')}
+        style={styles.profileImage}
       />
-      <Text style={styles.username}>{username}</Text>
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>Email: {email}</Text>
-        <Text style={styles.infoText}>Phone: {phoneNumber}</Text>
-        <Text style={styles.infoText}>Bio: {bio}</Text>
-        <Text style={styles.infoText}>Location: {location}</Text>
-      </View>
-      
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={handleEditProfile}>
-          <Text style={styles.buttonText}>Profili Düzenle</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Profili Sil</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Kullanıcı Bilgileri */}
+      {userInfo ? (
+        <View style={styles.userInfoContainer}>
+          <Text style={styles.username}>{userInfo.username}</Text>
+          <Text style={styles.userInfoText}>Ad: {userInfo.name}</Text>
+          <Text style={styles.userInfoText}>Soyad: {userInfo.surname}</Text>
+          <Text style={styles.userInfoText}>Doğum Tarihi: {userInfo.dateOfBirth}</Text>
+          <Text style={styles.userInfoText}>Cinsiyet: {userInfo.gender}</Text>
+          <Text style={styles.userInfoText}>Email: {userInfo.email}</Text>
+          <Text style={styles.userInfoText}>Telefon: {userInfo.phoneNumber}</Text>
+          <Text style={styles.bioText}>Biyografi: {bio}</Text>
+        </View>
+      ) : (
+        <Text style={styles.errorText}>Kullanıcı bilgileri bulunamadı.</Text>
+      )}
+      {/* Düzenle Butonu */}
+      <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditProfile')}>
+        <Text style={styles.editButtonText}>Profili Düzenle</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
+// Stil tanımlamaları
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    backgroundColor: '#F1F1F2',
     padding: 20,
+    backgroundColor: '#fff',
+    alignItems: 'center',
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 20,
     borderWidth: 2,
-    borderColor: '#1995AD',
+    borderColor: '#ccc',
+    marginBottom: 20,
+  },
+  userInfoContainer: {
+    width: '100%',
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: '#f8f8f8',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
+    marginBottom: 20,
   },
   username: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1995AD',
     marginBottom: 10,
-    fontFamily:'ms-regular'
   },
-  infoContainer: {
-    width: '100%',
-    padding: 15,
-    borderRadius: 10,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-    marginBottom: 20,
-  },
-  infoText: {
+  userInfoText: {
     fontSize: 16,
     color: '#333',
-    marginBottom: 5,
-    fontFamily: 'ms-regular',
+    marginVertical: 4,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 20,
+  bioText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 10,
   },
-  button: {
-    backgroundColor: '#1995AD',
-    paddingVertical: 12,
+  errorText: {
+    fontSize: 16,
+    color: 'red',
+    textAlign: 'center',
+    marginVertical: 20,
+  },
+  editButton: {
+    backgroundColor: '#0095F6',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     borderRadius: 5,
-    width: '45%',
-    alignItems: 'center',
   },
-  buttonText: {
+  editButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily:'ms-regular'
   },
 });
 

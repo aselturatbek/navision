@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Alert, StyleSheet, Text, Platform, TouchableOpacity } from 'react-native';
+import { View, TextInput, Button, Alert, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
 import { auth } from '../firebase'; 
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDocs, collection } from 'firebase/firestore'; 
+import { getFirestore, doc, setDoc , getDocs, collection} from 'firebase/firestore'; 
+import { getDatabase, ref, set } from 'firebase/database'; 
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
@@ -22,10 +23,10 @@ const RegisterScreen = () => {
   const [gender, setGender] = useState('male');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const firestore = getFirestore(); // Firestore instance
+  const database = getDatabase(); // Realtime Database instance
 
   const checkUsernameExists = async (username) => {
     const snapshot = await getDocs(collection(firestore, 'userInfo'));
-    
     return snapshot.docs.some(doc => doc.data().username === username);
   };
 
@@ -65,6 +66,17 @@ const RegisterScreen = () => {
 
         // Firestore'da kullanıcı bilgilerini kaydet
         await setDoc(doc(firestore, 'userInfo', userId), {
+          username: username,
+          phoneNumber: phoneNumber,
+          email: email,
+          name: name,
+          surname: surname,
+          dateOfBirth: dateOfBirth.toISOString().split('T')[0],
+          gender: gender,
+        });
+
+        // Realtime Database'de kullanıcı bilgilerini kaydet
+        await set(ref(database, `users/${userId}`), {
           username: username,
           phoneNumber: phoneNumber,
           email: email,
@@ -246,11 +258,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     height: 50,
+    paddingLeft: 10,
   },
   datePickerButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#007BFF',
     borderRadius: 8,
-    padding: 10,
+    paddingVertical: 15,
     alignItems: 'center',
     marginBottom: 15,
   },
@@ -259,30 +272,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   dateDisplay: {
-    fontSize: 16,
-    marginVertical: 10,
+    marginBottom: 15,
     textAlign: 'center',
-    color: '#555',
   },
   genderLabel: {
     fontSize: 16,
+    fontWeight: 'bold',
     marginBottom: 10,
-    color: '#555',
   },
   picker: {
     height: 50,
     width: '100%',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
     marginBottom: 15,
+    backgroundColor: '#fff',
   },
   registerButton: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#28A745',
     borderRadius: 8,
-    padding: 15,
+    paddingVertical: 15,
     alignItems: 'center',
   },
   registerButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
