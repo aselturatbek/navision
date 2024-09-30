@@ -89,7 +89,7 @@ const HomeTabs = ({ route, navigation }) => {
         />
         <Tab.Screen 
           name="Profile" 
-          children={() => <ProfileScreen username={username} email={email} />} 
+          component={ProfileScreen}
           options={{ 
             tabBarLabel: () => null,
             tabBarIcon: ({ color }) => <Feather name="user" size={25} color={color} />

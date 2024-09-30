@@ -19,6 +19,8 @@ const RegisterScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
+  const [bio, setBio] = useState('');
+  const [profileImage, setProfileImage] = useState(null);
   const [dateOfBirth, setDateOfBirth] = useState(new Date());
   const [gender, setGender] = useState('male');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -73,6 +75,9 @@ const RegisterScreen = () => {
           surname: surname,
           dateOfBirth: dateOfBirth.toISOString().split('T')[0],
           gender: gender,
+          bio:'',
+          profileImage:''
+
         });
 
         // Realtime Database'de kullanıcı bilgilerini kaydet
@@ -84,6 +89,8 @@ const RegisterScreen = () => {
           surname: surname,
           dateOfBirth: dateOfBirth.toISOString().split('T')[0],
           gender: gender,
+          bio: '',
+          profileImage:''
         });
 
         Alert.alert("Başarılı", "Kayıt başarılı! E-posta doğrulama linki gönderildi.", [

@@ -1,37 +1,147 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons'; // İkonlar için Expo'dan MaterialIcons kullanıyoruz
+import React, { useEffect, useState } from 'react';
+import { View, TextInput, Button, Alert, StyleSheet, Text, Image } from 'react-native';
+import { auth } from '../firebase'; // Firebase yapılandırmanızı burada ekleyin
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getDatabase, ref, set, get } from 'firebase/database'; // Realtime Database
+import * as ImagePicker from 'expo-image-picker';
 
-const EditProfile = ({ username, email, phoneNumber, bio, location }) => {
+const EditProfile = () => {
+  const [userInfo, setUserInfo] = useState({
+    username: '',
+    name: '',
+    surname: '',
+    email: '',
+    phoneNumber: '',
+    birthOfDate: '',
+    gender: '',
+    biography: '',
+    profileImage: '',
+  });
+  const firestore = getFirestore();
+  const realtimeDb = getDatabase();
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      const userId = auth.currentUser.uid;
+
+      // Firestore'dan kullanıcı bilgilerini al
+      const docRef = doc(firestore, 'userInfo', userId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        setUserInfo(docSnap.data());
+      }
+
+      // Realtime Database'den de kullanıcı bilgilerini al
+      const dbRef = ref(realtimeDb, `userInfo/${userId}`);
+      const snapshot = await get(dbRef);
+
+      if (snapshot.exists()) {
+        const realtimeData = snapshot.val();
+        setUserInfo(prev => ({ ...prev, ...realtimeData })); // Var olan bilgileri güncelle
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
+
+  const updateProfile = async () => {
+    const userId = auth.currentUser.uid;
+
+    // Firestore'da güncelle
+    await setDoc(doc(firestore, 'userInfo', userId), userInfo);
+
+    // Realtime Database'de güncelle
+    await set(ref(realtimeDb, `userInfo/${userId}`), userInfo);
+
+    Alert.alert("Başarılı", "Profil başarıyla güncellendi.");
+  };
+
+  const selectProfileImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('İzin verilmedi', 'Resim seçmek için izin gerekli.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const source = result.assets[0].uri; // Seçilen resmin URI'si
+      setUserInfo({ ...userInfo, profileImage: source });
+    } else {
+      console.log('Kullanıcı resmi seçmeyi iptal etti.');
+    }
+  };
+
+  if (!userInfo) {
+    return <Text>Loading...</Text>;
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.profileContainer}>
-        <Image 
-          source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Koala_climbing_tree.jpg/640px-Koala_climbing_tree.jpg' }} 
-          style={styles.profileImage} 
-        />
-        <TouchableOpacity style={styles.changePhotoButton}>
-          <MaterialIcons name="edit" size={24} color="#1995AD" />
-          <Text style={styles.changePhotoText}>Fotoğrafı Değiştir</Text>
-        </TouchableOpacity>
-      </View>
+      <TextInput
+        placeholder="Kullanıcı Adı"
+        value={userInfo.username}
+        onChangeText={(text) => setUserInfo({ ...userInfo, username: text })}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Ad"
+        value={userInfo.name}
+        onChangeText={(text) => setUserInfo({ ...userInfo, name: text })}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Soyad"
+        value={userInfo.surname}
+        onChangeText={(text) => setUserInfo({ ...userInfo, surname: text })}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="E-posta"
+        value={userInfo.email}
+        onChangeText={(text) => setUserInfo({ ...userInfo, email: text })}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Telefon Numarası"
+        value={userInfo.phoneNumber}
+        onChangeText={(text) => setUserInfo({ ...userInfo, phoneNumber: text })}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Doğum Tarihi (YYYY-MM-DD)"
+        value={userInfo.birthOfDate}
+        onChangeText={(text) => setUserInfo({ ...userInfo, birthOfDate: text })}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Cinsiyet"
+        value={userInfo.gender}
+        onChangeText={(text) => setUserInfo({ ...userInfo, gender: text })}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Biyografi"
+        value={userInfo.biography}
+        onChangeText={(text) => setUserInfo({ ...userInfo, biography: text })}
+        style={styles.input}
+      />
       
-      <Text style={styles.username}>{username}</Text>
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>Email: {email}</Text>
-        <Text style={styles.infoText}>Phone: {phoneNumber}</Text>
-        <Text style={styles.infoText}>Bio: {bio}</Text>
-        <Text style={styles.infoText}>Location: {location}</Text>
-      </View>
+      <Button title="Profil Resmi Seç" onPress={selectProfileImage} />
+      {userInfo.profileImage ? (
+        <Image source={{ uri: userInfo.profileImage }} style={styles.profileImage} />
+      ) : (
+        <Text>Profil resmi seçilmedi.</Text>
+      )}
       
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Profili Düzenle</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Profili Sil</Text>
-        </TouchableOpacity>
-      </View>
+      <Button title="Profil Güncelle" onPress={updateProfile} />
     </View>
   );
 };
@@ -39,77 +149,23 @@ const EditProfile = ({ username, email, phoneNumber, bio, location }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    backgroundColor: '#F1F1F2',
     padding: 20,
-    marginTop:70
+    backgroundColor: '#f5f5f5',
   },
-  profileContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
+  input: {
+    height: 50,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 15,
+    paddingHorizontal: 10,
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    borderWidth: 2,
-    borderColor: '#1995AD',
-    marginRight: 10,
-  },
-  changePhotoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  changePhotoText: {
-    fontSize: 16,
-    color: '#1995AD',
-    marginLeft: 5,
-    fontFamily: 'ms-regular',
-  },
-  username: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1995AD',
-    marginBottom: 10,
-    fontFamily: 'ms-regular',
-  },
-  infoContainer: {
-    width: '100%',
-    padding: 15,
-    borderRadius: 10,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-    marginBottom: 20,
-  },
-  infoText: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 5,
-    fontFamily: 'ms-regular',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 20,
-  },
-  button: {
-    backgroundColor: '#1995AD',
-    paddingVertical: 12,
-    borderRadius: 5,
-    width: '45%',
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'ms-regular',
+    marginVertical: 15,
+    alignSelf: 'center',
   },
 });
 
