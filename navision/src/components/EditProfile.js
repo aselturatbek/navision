@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, TextInput, Button, Alert, StyleSheet, Text, Image } from 'react-native';
 import { auth } from '../firebase'; // Firebase yapılandırmanızı burada ekleyin
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getDatabase, ref, set, get } from 'firebase/database'; // Realtime Database importu
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native'; // Navigation kullanımı için ekledik
 
 const EditProfile = ({ route }) => {
-  const navigation = useNavigation(); // Navigation hook'u kullanıyoruz
-  const { onUpdate } = route.params; // Parent bileşenden gelen güncelleme fonksiyonu
+  const navigation = useNavigation();
+  const { onUpdate } = route.params;
   const [userInfo, setUserInfo] = useState({
     username: '',
     name: '',
@@ -21,6 +22,7 @@ const EditProfile = ({ route }) => {
   });
 
   const firestore = getFirestore();
+  const database = getDatabase(); // Realtime Database referansı
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -41,12 +43,29 @@ const EditProfile = ({ route }) => {
   const updateProfile = async () => {
     const userId = auth.currentUser.uid;
 
+    // E-posta adresi güncellenirse doğrulama işlemi yapılacak
+    const user = auth.currentUser;
+
+    if (userInfo.email !== user.email) {
+      try {
+        await user.updateEmail(userInfo.email);
+        await user.sendEmailVerification(); // E-posta doğrulama gönder
+        Alert.alert("Başarılı", "E-posta adresi güncellendi ve doğrulama e-postası gönderildi. Lütfen e-posta adresinizi kontrol edin.");
+      } catch (error) {
+        Alert.alert("Hata", error.message);
+        return;
+      }
+    }
+
     // Firestore'da güncelle
     await setDoc(doc(firestore, 'userInfo', userId), userInfo);
 
+    // Realtime Database'de güncelle
+    await set(ref(database, 'userInfo/' + userId), userInfo);
+
     Alert.alert("Başarılı", "Profil başarıyla güncellendi.", [
       { text: "Tamam", onPress: () => {
-        onUpdate(); // Kullanıcı bilgileri güncellendiğinde parent bileşene bildir
+        onUpdate(userInfo); // Kullanıcı bilgileri güncellendiğinde parent bileşene bildir
         navigation.navigate('Profile'); // Profil sayfasına yönlendirme
       }}
     ]);
@@ -68,7 +87,9 @@ const EditProfile = ({ route }) => {
 
     if (!result.canceled) {
       const source = result.assets[0].uri; // Seçilen resmin URI'si
-      setUserInfo({ ...userInfo, profileImage: source });
+      const updatedUserInfo = { ...userInfo, profileImage: source }; // Güncellenmiş kullanıcı bilgileri
+      setUserInfo(updatedUserInfo); // Yeni resmi state'e ayarla
+      onUpdate(updatedUserInfo); // Güncellenmiş bilgileri üst bileşene gönder
     } else {
       console.log('Kullanıcı resmi seçmeyi iptal etti.');
     }
@@ -145,7 +166,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
   },
   input: {
     height: 50,

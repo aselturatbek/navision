@@ -19,7 +19,7 @@ const LoginScreen = ({ navigation }) => {
       }
 
       const db = getDatabase();
-      const usernameRef = ref(db, 'users/' + user.uid + '/username');
+      const usernameRef = ref(db, 'userInfo/' + user.uid + '/username');
       const snapshot = await get(usernameRef);
 
       if (snapshot.exists()) {

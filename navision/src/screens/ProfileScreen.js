@@ -26,8 +26,8 @@ const ProfileScreen = () => {
     fetchUserInfo(); // Bileşen ilk yüklendiğinde kullanıcı bilgilerini çek
   }, []);
 
-  const handleUpdate = () => {
-    fetchUserInfo(); // Kullanıcı bilgileri güncellendiğinde tekrar veri çek
+  const handleUpdate = (updatedInfo) => {
+    setUserInfo(updatedInfo); // Kullanıcı bilgisini güncelle
   };
 
   if (!userInfo) {
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
   },
   title: {
     fontSize: 24,
