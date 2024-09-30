@@ -10,21 +10,25 @@ const ProfileScreen = () => {
   const [userInfo, setUserInfo] = useState(null);
   const firestore = getFirestore();
 
+  const fetchUserInfo = async () => {
+    const userId = auth.currentUser.uid; // Giriş yapan kullanıcının ID'si
+    const docRef = doc(firestore, 'userInfo', userId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      setUserInfo(docSnap.data());
+    } else {
+      console.log('No such document!');
+    }
+  };
+
   useEffect(() => {
-    const fetchUserInfo = async () => {
-      const userId = auth.currentUser.uid; // Giriş yapan kullanıcının ID'si
-      const docRef = doc(firestore, 'userInfo', userId);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        setUserInfo(docSnap.data());
-      } else {
-        console.log('No such document!');
-      }
-    };
-
-    fetchUserInfo();
+    fetchUserInfo(); // Bileşen ilk yüklendiğinde kullanıcı bilgilerini çek
   }, []);
+
+  const handleUpdate = () => {
+    fetchUserInfo(); // Kullanıcı bilgileri güncellendiğinde tekrar veri çek
+  };
 
   if (!userInfo) {
     return <Text>Loading...</Text>; // Veriler yüklenirken gösterilecek
@@ -32,7 +36,7 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditProfile')}>
+      <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditProfile', { onUpdate: handleUpdate })}>
         <Icon name="create-outline" size={24} color="#fff" />
       </TouchableOpacity>
 
@@ -42,9 +46,9 @@ const ProfileScreen = () => {
       <Text style={styles.info}>Kullanıcı Adı: {userInfo.username}</Text>
       <Text style={styles.info}>E-posta: {userInfo.email}</Text>
       <Text style={styles.info}>Telefon: {userInfo.phoneNumber}</Text>
-      <Text style={styles.info}>Doğum Tarihi: {userInfo.dateOfBirth}</Text>
+      <Text style={styles.info}>Doğum Tarihi: {userInfo.birthOfDate}</Text>
       <Text style={styles.info}>Cinsiyet: {userInfo.gender}</Text>
-      <Text style={styles.info}>Biyografi: {userInfo.bio}</Text>
+      <Text style={styles.info}>Biyografi: {userInfo.biography}</Text>
     </View>
   );
 };

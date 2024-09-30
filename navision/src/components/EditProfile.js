@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { View, TextInput, Button, Alert, StyleSheet, Text, Image } from 'react-native';
 import { auth } from '../firebase'; // Firebase yapılandırmanızı burada ekleyin
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
-import { getDatabase, ref, set, get } from 'firebase/database'; // Realtime Database
 import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native'; // Navigation kullanımı için ekledik
 
-const EditProfile = () => {
+const EditProfile = ({ route }) => {
+  const navigation = useNavigation(); // Navigation hook'u kullanıyoruz
+  const { onUpdate } = route.params; // Parent bileşenden gelen güncelleme fonksiyonu
   const [userInfo, setUserInfo] = useState({
     username: '',
     name: '',
@@ -17,8 +19,8 @@ const EditProfile = () => {
     biography: '',
     profileImage: '',
   });
+
   const firestore = getFirestore();
-  const realtimeDb = getDatabase();
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -31,19 +33,10 @@ const EditProfile = () => {
       if (docSnap.exists()) {
         setUserInfo(docSnap.data());
       }
-
-      // Realtime Database'den de kullanıcı bilgilerini al
-      const dbRef = ref(realtimeDb, `userInfo/${userId}`);
-      const snapshot = await get(dbRef);
-
-      if (snapshot.exists()) {
-        const realtimeData = snapshot.val();
-        setUserInfo(prev => ({ ...prev, ...realtimeData })); // Var olan bilgileri güncelle
-      }
     };
 
     fetchUserInfo();
-  }, []);
+  }, [firestore]);
 
   const updateProfile = async () => {
     const userId = auth.currentUser.uid;
@@ -51,10 +44,12 @@ const EditProfile = () => {
     // Firestore'da güncelle
     await setDoc(doc(firestore, 'userInfo', userId), userInfo);
 
-    // Realtime Database'de güncelle
-    await set(ref(realtimeDb, `userInfo/${userId}`), userInfo);
-
-    Alert.alert("Başarılı", "Profil başarıyla güncellendi.");
+    Alert.alert("Başarılı", "Profil başarıyla güncellendi.", [
+      { text: "Tamam", onPress: () => {
+        onUpdate(); // Kullanıcı bilgileri güncellendiğinde parent bileşene bildir
+        navigation.navigate('Profile'); // Profil sayfasına yönlendirme
+      }}
+    ]);
   };
 
   const selectProfileImage = async () => {
@@ -164,8 +159,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginVertical: 15,
-    alignSelf: 'center',
+    marginVertical: 10,
   },
 });
 
