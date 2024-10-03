@@ -13,7 +13,11 @@ import SideMenu from '../components/SideMenu';
 import EditProfile from '../components/EditProfile';
 import { Feather } from 'react-native-vector-icons'; // Feather icons
 import * as Font from 'expo-font'; // Import expo-font
-
+import HomeIcon from '../assets/icons/HomeIcon';
+import BagIcon from '../assets/icons/BagIcon';
+import GridIcon from '../assets/icons/GridIcon';
+import MessageIcon from '../assets/icons/MessageIcon';
+import NotificationIcon from '../assets/icons/NotificationIcon';
 const loadFonts = async () => {
   await Font.loadAsync({
     'ms-regular': require('../assets/fonts/ms-regular.ttf'),
@@ -30,14 +34,14 @@ const Header = ({ onMenuPress }) => {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 18, backgroundColor: 'transparent', marginTop: 30 }}>
       <TouchableOpacity onPress={onMenuPress}>
-        <Text style={{ fontSize: 20, fontWeight: 'bold', fontFamily: 'ms-regular', marginBottom: 15 }}>NAVISION</Text>
+        <Text style={{ fontSize: 20, fontWeight: 'bold', fontFamily: 'ms-regular', marginBottom: 15 }}>navision</Text>
       </TouchableOpacity>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <TouchableOpacity style={{ marginRight: 16 }}>
-          <Feather name="bell" size={25} color="black" />
+          <NotificationIcon size={25} color="black" />
         </TouchableOpacity>
         <TouchableOpacity style={{ marginRight: 16 }}>
-          <Feather name="message-circle" size={25} color="black" />
+          <MessageIcon size={25} color="black" />
         </TouchableOpacity>
         <Image 
           source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Koala_climbing_tree.jpg/640px-Koala_climbing_tree.jpg' }} // Profil fotoğrafı
@@ -68,7 +72,7 @@ const HomeTabs = ({ route, navigation }) => {
           children={() => <HomeScreen username={username} />} 
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color }) => <Feather name="home" size={25} color={color} /> 
+            tabBarIcon: ({ color }) => <HomeIcon  size={25} color={color} /> 
           }} 
         />
         <Tab.Screen 
@@ -84,7 +88,7 @@ const HomeTabs = ({ route, navigation }) => {
           component={MessageScreen} 
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color }) => <Feather name="message-circle" size={25} color={color} />
+            tabBarIcon: ({ color }) => <GridIcon size={25} color={color} />
           }} 
         />
         <Tab.Screen 
@@ -92,7 +96,7 @@ const HomeTabs = ({ route, navigation }) => {
           component={ProfileScreen}
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color }) => <Feather name="user" size={25} color={color} />
+            tabBarIcon: ({ color }) => <BagIcon   size={25} color={color} /> 
           }} 
         />
       </Tab.Navigator>
