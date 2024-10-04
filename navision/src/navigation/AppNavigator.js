@@ -18,6 +18,10 @@ import BagIcon from '../assets/icons/BagIcon';
 import GridIcon from '../assets/icons/GridIcon';
 import MessageIcon from '../assets/icons/MessageIcon';
 import NotificationIcon from '../assets/icons/NotificationIcon';
+import MoreIcon from '../assets/icons/MoreIcon';
+import PlusIcon from '../assets/icons/PlusIcon';
+
+
 const loadFonts = async () => {
   await Font.loadAsync({
     'ms-regular': require('../assets/fonts/ms-regular.ttf'),
@@ -34,7 +38,8 @@ const Header = ({ onMenuPress }) => {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 18, backgroundColor: 'transparent', marginTop: 30 }}>
       <TouchableOpacity onPress={onMenuPress}>
-        <Text style={{ fontSize: 20, fontWeight: 'bold', fontFamily: 'ms-regular', marginBottom: 15 }}>navision</Text>
+        <Text style={{ fontSize: 20, fontWeight: 'bold', fontFamily: 'ms-bold', marginTop: 8, marginLeft:10  }}>navision <MoreIcon/></Text>
+        
       </TouchableOpacity>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <TouchableOpacity style={{ marginRight: 16 }}>
@@ -44,7 +49,7 @@ const Header = ({ onMenuPress }) => {
           <MessageIcon size={25} color="black" />
         </TouchableOpacity>
         <Image 
-          source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Koala_climbing_tree.jpg/640px-Koala_climbing_tree.jpg' }} // Profil fotoğrafı
+          source={require('../assets/images/default_cat.jpg')}
           style={{ width: 40, height: 40, borderRadius: 20 }}
         />
       </View>
@@ -66,13 +71,16 @@ const HomeTabs = ({ route, navigation }) => {
       {menuVisible && (
         <SideMenu onClose={() => setMenuVisible(false)}/>
       )}
-      <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0 } }}>
+      <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0 ,padding:10,paddingHorizontal:20},
+    tabBarActiveTintColor: 'black', 
+    tabBarInactiveTintColor: 'gray' 
+    }}>
         <Tab.Screen 
           name="Home" 
           children={() => <HomeScreen username={username} />} 
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color }) => <HomeIcon  size={25} color={color} /> 
+            tabBarIcon: ({ color, focused}) => <HomeIcon size={25} color={focused ? "black" : color} /> 
           }} 
         />
         <Tab.Screen 
@@ -80,7 +88,15 @@ const HomeTabs = ({ route, navigation }) => {
           component={SearchScreen} 
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color }) => <Feather name="search" size={25} color={color} />
+            tabBarIcon: ({ color,focused}) => <Feather name="search" size={25} color={focused ? "black" : color} />
+          }}
+        />
+        <Tab.Screen 
+          name="EditProfile" 
+          component={EditProfile} 
+          options={{ 
+            tabBarLabel: () => null,
+            tabBarIcon: ({ color, focused }) => <PlusIcon color={focused ? "black" : color}/>
           }}
         />
         <Tab.Screen 
@@ -88,7 +104,7 @@ const HomeTabs = ({ route, navigation }) => {
           component={MessageScreen} 
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color }) => <GridIcon size={25} color={color} />
+            tabBarIcon: ({ color, focused }) => <GridIcon size={25} color={focused ? "black" : color} />
           }} 
         />
         <Tab.Screen 
@@ -96,7 +112,7 @@ const HomeTabs = ({ route, navigation }) => {
           component={ProfileScreen}
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color }) => <BagIcon   size={25} color={color} /> 
+            tabBarIcon: ({ color,focused }) => <BagIcon   size={25} color={focused ? "black" : color} /> 
           }} 
         />
       </Tab.Navigator>
