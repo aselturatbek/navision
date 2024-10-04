@@ -1,4 +1,4 @@
-import React from 'react';
+import React,  { useState } from 'react';
 import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Svg, { Ellipse } from "react-native-svg";
@@ -10,11 +10,32 @@ import CommentIcon from '../assets/icons/CommentIcon';
 import SendIcon from '../assets/icons/SendIcon';
 import HeartIcon from '../assets/icons/HeartIcon';
 import AddIcon from '../assets/icons/AddIcon';
+import CommentsModal from '../components/CommentsModal';
+import ShareModal from '../components/ShareModal';
 
 const HomeScreen = () => {
   const handlePress = () => {
     console.log('Image pressed');
   };
+  const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
+  const [isShareModalVisible, setIsShareModalVisible] = useState(false);
+
+  const handleCommentPress = () => {
+    setIsCommentsModalVisible(true);
+  };
+
+  const handleSharePress = () => {
+    setIsShareModalVisible(true);
+  };
+
+  const closeCommentsModal = () => {
+    setIsCommentsModalVisible(false);
+  };
+
+  const closeShareModal = () => {
+    setIsShareModalVisible(false);
+  };
+
 
   return (
     <View style={styles.container}>
@@ -70,16 +91,19 @@ const HomeScreen = () => {
                 <HeartIcon style={styles.icons} />
                 <Text style={styles.countText}>4.2k</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.button}>
+              <TouchableOpacity style={styles.button} onPress={handleCommentPress}>
                 <CommentIcon style={styles.icons}/>
                 <Text style={styles.countText}>273</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.button}>
+              <TouchableOpacity style={styles.button} onPress={handleSharePress}>
                 <SendIcon style={styles.icons}/>
                 <Text style={styles.countText}>48</Text>
               </TouchableOpacity>
             </View>
           </View>
+          
+      <CommentsModal visible={isCommentsModalVisible} onClose={closeCommentsModal} />
+      <ShareModal visible={isShareModalVisible} onClose={closeShareModal} />
         </View>
 
         {/* Post Section 1 */}
