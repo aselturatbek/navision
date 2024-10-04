@@ -7,7 +7,7 @@ const SideMenu = ({ onClose }) => {
     <View style={styles.sideMenu}>
       <Text style={styles.menuTitle}>Menu</Text>
       <TouchableOpacity onPress={onClose}>
-        <Text style={styles.closeMenu}>Close Menu</Text>
+        <Text style={styles.closeMenu}>gapaaat</Text>
       </TouchableOpacity>
       {/* Add more menu options here */}
     </View>

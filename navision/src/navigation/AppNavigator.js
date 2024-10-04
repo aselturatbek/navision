@@ -20,6 +20,7 @@ import MessageIcon from '../assets/icons/MessageIcon';
 import NotificationIcon from '../assets/icons/NotificationIcon';
 import MoreIcon from '../assets/icons/MoreIcon';
 import PlusIcon from '../assets/icons/PlusIcon';
+import SearchIcon from '../assets/icons/SearchIcon';
 
 
 const loadFonts = async () => {
@@ -88,7 +89,7 @@ const HomeTabs = ({ route, navigation }) => {
           component={SearchScreen} 
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color,focused}) => <Feather name="search" size={25} color={focused ? "black" : color} />
+            tabBarIcon: ({ color,focused}) => <SearchIcon size={25} color={focused ? "black" : color} />
           }}
         />
         <Tab.Screen 
