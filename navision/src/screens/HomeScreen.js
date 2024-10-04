@@ -4,8 +4,18 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import Svg, { Ellipse } from "react-native-svg";
 import MaterialCommunityIconsIcon from "react-native-vector-icons/MaterialCommunityIcons";
 import EvilIconsIcon from "react-native-vector-icons/EvilIcons";
+import SaveIcon from '../assets/icons/SaveIcon';
+import LocationIcon from '../assets/icons/LocationIcon';
+import CommentIcon from '../assets/icons/CommentIcon';
+import SendIcon from '../assets/icons/SendIcon';
+import HeartIcon from '../assets/icons/HeartIcon';
+import AddIcon from '../assets/icons/AddIcon';
 
 const HomeScreen = () => {
+  const handlePress = () => {
+    console.log('Image pressed');
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -13,21 +23,35 @@ const HomeScreen = () => {
         {/* Stories */}
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.storiesContainer}>
           <TouchableOpacity style={styles.storyItem}>
-            <Icon name="add-circle-outline" size={55} color="black" />
+            <AddIcon/>
           </TouchableOpacity>
-          <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
-          <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
-          <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
-          <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
+          <TouchableOpacity onPress={handlePress}>
+            <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handlePress}>
+            <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handlePress}>
+            <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handlePress}>
+            <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handlePress}>
+            <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
+          </TouchableOpacity>
         </ScrollView>
 
         {/* Post Section 1 */}
         <View style={styles.postContainer}>
           <Image source={require('../assets/images/post.png')} style={styles.postImage} />
+          <TouchableOpacity style={styles.saveIconContainer}>
+              <SaveIcon />
+          </TouchableOpacity>
           <View style={styles.postInfo}>
             <View style={styles.icon2ColumnRow}>
               <View style={styles.locationRow}>
-                <EvilIconsIcon name="location" style={styles.icon2}></EvilIconsIcon>
+                <LocationIcon style={styles.icon2}/>
                 <Text style={styles.location}>Mount Fuji, Tokyo</Text>
               </View>
               
@@ -43,60 +67,60 @@ const HomeScreen = () => {
 
             <View style={styles.iconRow}>
               <TouchableOpacity style={styles.button}>
-                <Icon name="heart-outline" size={25} style={styles.icons} />
+                <HeartIcon style={styles.icons} />
                 <Text style={styles.countText}>4.2k</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.button}>
-                <Icon name="chatbubble-outline" size={25} style={styles.icons}/>
+                <CommentIcon style={styles.icons}/>
                 <Text style={styles.countText}>273</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.button}>
-                <Icon name="paper-plane-outline" size={25} style={styles.icons}/>
+                <SendIcon style={styles.icons}/>
                 <Text style={styles.countText}>48</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* Post Section 2 */}
+        {/* Post Section 1 */}
         <View style={styles.postContainer}>
           <Image source={require('../assets/images/post2.png')} style={styles.postImage} />
+          <TouchableOpacity style={styles.saveIconContainer}>
+              <SaveIcon />
+          </TouchableOpacity>
           <View style={styles.postInfo}>
             <View style={styles.icon2ColumnRow}>
               <View style={styles.locationRow}>
-                <EvilIconsIcon name="location" style={styles.icon2}></EvilIconsIcon>
-                <Text style={styles.location}>Tokyo Tower, Japan</Text>
+                <LocationIcon style={styles.icon2}/>
+                <Text style={styles.location}>Mount Fuji, Tokyo</Text>
               </View>
               
               <View style={styles.authorRow}>
                 <Image source={require('../assets/images/default_cat.jpg')} style={styles.authorImage} />
-                <Text style={styles.postAuthor}>Ahmet Demir 2sa</Text>
+                <Text style={styles.postAuthor}>Kerem Baran TAN 4sa</Text>
               </View>
 
               <Text style={styles.postDescription}>
-                Bugün Tokyo Kulesi'ne {"\n"}çıktım ve manzara {"\n"}muhteşemdi! {"\n"}Kesinlikle görülmesi gereken bir yer...
+                14 saat yol gittim ama {"\n"}gercekten bu kadar mı {"\n"}guzel olur dayı...
               </Text>
             </View>
 
             <View style={styles.iconRow}>
               <TouchableOpacity style={styles.button}>
-                <Icon name="heart-outline" size={25} style={styles.icons} />
-                <Text style={styles.countText}>3.1k</Text>
+                <HeartIcon style={styles.icons} />
+                <Text style={styles.countText}>4.2k</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.button}>
-                <Icon name="chatbubble-outline" size={25} style={styles.icons}/>
-                <Text style={styles.countText}>150</Text>
+                <CommentIcon style={styles.icons}/>
+                <Text style={styles.countText}>273</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.button}>
-                <Icon name="paper-plane-outline" size={25} style={styles.icons}/>
-                <Text style={styles.countText}>22</Text>
+                <SendIcon style={styles.icons}/>
+                <Text style={styles.countText}>48</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
-
-        {/* Add more post containers here if needed */}
-        
       </ScrollView>
     </View>
   );
@@ -108,16 +132,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   storiesContainer: {
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 20,
   },
   storyItem: {
     alignItems: 'center',
     marginHorizontal: 5,
   },
   storyImage: {
-    width: 65,
-    height: 65,
+    width: 60,
+    height: 60,
     borderRadius: 33,
     marginHorizontal: 5,
   },
@@ -125,19 +149,36 @@ const styles = StyleSheet.create({
     marginVertical: 15,
     paddingHorizontal: 18,
   },
+  saveIconContainer: {
+    position: 'absolute',
+    top: 20,
+    right: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)', // Optional: Adds a semi-transparent background
+    borderRadius: 20,
+    padding: 12,
+    zIndex: 1,
+    shadowColor: '#fff',
+    shadowOffset: {
+      width: 1,
+      height: 1,
+    },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+    elevation: 1,
+  },
   postImage: {
     width: '100%',
     height: 370,
-    borderRadius: 25,
+    borderRadius: 30,
     zIndex: 1, // Ensure it's on top
   },
   postInfo: {
     padding: 15,
     backgroundColor: '#33414f',
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     marginTop: -30,
-    height: 140,
+    height: 150,
     zIndex: 0,
   },
   icon2ColumnRow: {
@@ -145,7 +186,10 @@ const styles = StyleSheet.create({
   },
   locationRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
+    marginLeft:4,
+    marginTop:10
+
   },
   authorRow: {
     flexDirection: 'row',
@@ -164,9 +208,11 @@ const styles = StyleSheet.create({
     height: 25,
     marginRight: 8,
     borderRadius: 25,
+    marginLeft:1,
+    marginTop:12
   },
   location: {
-    fontFamily: 'ms-regular',
+    fontFamily: 'ms-bold',
     fontSize: 13,
     color: '#fff',
     marginTop: 22,
@@ -181,19 +227,20 @@ const styles = StyleSheet.create({
     fontFamily: 'ms-bold',
     fontSize: 9,
     color: '#fff',
-    marginTop: 2,
-    marginLeft: 33,
+    marginTop: -5,
+    marginLeft: 34,
     flexWrap: 'wrap'
   },
   iconRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: -60,
+    marginTop: -70,
+    marginRight:-10
   },
   button: {
-    width: 45,
-    height: 55,
+    width: 47,
+    height: 61,
     backgroundColor: "#293440",
     borderRadius: 12,
     justifyContent: 'center',
@@ -203,19 +250,21 @@ const styles = StyleSheet.create({
     marginTop: -20,
     shadowColor: '#fff',
     shadowOffset: {
-      width: 0,
-      height: 2,
+      width: 1,
+      height: 1,
     },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowRadius: 5,
+    elevation: 1,
   },
   icons: {
-    color: '#fff',
+    color: 'pink',
   },
   countText: {
     color: '#fff',
     fontFamily: 'ms-light',
+    fontSize:12,
+    marginTop:6
   },
 });
 
