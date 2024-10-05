@@ -55,7 +55,7 @@ const CommentsModal = ({ visible, onClose }) => {
                 placeholderTextColor="#999"
               />
               <TouchableOpacity onPress={handleCommentSubmit}>
-                <Ionicons name="send-outline" size={24} color="#004d40" />
+                <Ionicons name="send-outline" size={24} color="#000000" />
               </TouchableOpacity>
             </View>
 
@@ -96,7 +96,7 @@ const CommentsModal = ({ visible, onClose }) => {
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'flex-end',
   },
   modalContent: {
@@ -115,17 +115,17 @@ const styles = StyleSheet.create({
   },
   commentsCount: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily:'ms-bold',
     color: '#333',
   },
   filterText: {
-    color: '#004d40',
-    fontWeight: 'bold',
+    color: '#000000',
+    fontFamily:'ms-bold'
   },
   commentInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 20
   },
   commentUserImage: {
     width: 35,
@@ -141,6 +141,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginRight: 10,
     fontSize: 14,
+    fontFamily:'ms-regular'
   },
   commentItem: {
     flexDirection: 'row',
@@ -148,8 +149,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   commentAuthorImage: {
-    width: 40,
-    height: 40,
+    width: 35,
+    height: 35,
     borderRadius: 20,
     marginRight: 10,
   },
@@ -159,16 +160,18 @@ const styles = StyleSheet.create({
   commentAuthor: {
     fontSize: 14,
     fontWeight: 'bold',
+    fontFamily:'ms-bold',
     color: '#333',
   },
   timestamp: {
     fontSize: 12,
-    fontFamily: 'MS-Light', // Ensure this font is loaded and available
+    fontFamily: 'ms-light',
     color: '#999',
     marginBottom: 5,
   },
   commentText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontFamily:'ms-regular',
     color: '#555',
     marginBottom: 5,
   },
@@ -187,6 +190,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     color: '#555',
+    fontFamily:'ms-light',
     marginLeft: 5,
   },
 });
