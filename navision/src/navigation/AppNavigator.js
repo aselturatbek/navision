@@ -43,7 +43,7 @@ const Header = ({ onMenuPress }) => {
         
       </TouchableOpacity>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <TouchableOpacity style={{ marginRight: 16 }}>
+        <TouchableOpacity style={{ marginRight: 5, marginBottom:-15}}>
           <NotificationIcon size={25} color="black" />
         </TouchableOpacity>
         <TouchableOpacity style={{ marginRight: 16 }}>
