@@ -111,8 +111,8 @@ const styles = StyleSheet.create({
     marginTop:2
   },
   searchBox: {
-    width: 150, // Increased width for search box
-    height: 25, // Increased height for search box
+    width: 150, 
+    height: 25, 
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#ccc',
