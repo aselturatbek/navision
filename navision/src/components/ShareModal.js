@@ -102,16 +102,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 10,
+    marginBottom: 20,
   },
   title: {
     fontSize: 14,
     color: '#000000',
-    fontFamily:'ms-bold'
+    fontFamily:'ms-bold',
+    marginTop:2
   },
   searchBox: {
     width: 150, // Increased width for search box
-    height: 30, // Increased height for search box
+    height: 25, // Increased height for search box
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#ccc',
@@ -120,7 +121,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   searchIcon:{
-    alignSelf:'flex-end'
+    alignSelf:'flex-start',
+    fontSize:14,
+    color:'#000'
   },
   friendsList: {
     flexDirection: 'row',
