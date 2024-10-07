@@ -12,6 +12,8 @@ import HeartIcon from '../assets/icons/HeartIcon';
 import AddIcon from '../assets/icons/AddIcon';
 import CommentsModal from '../components/CommentsModal';
 import ShareModal from '../components/ShareModal';
+import StoryShareModal from '../components/StoryShareModal';
+import StoryModal from '../components/StoryModal';
 
 const HomeScreen = () => {
   const handlePress = () => {
@@ -19,6 +21,8 @@ const HomeScreen = () => {
   };
   const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
   const [isShareModalVisible, setIsShareModalVisible] = useState(false);
+  const [isStoryShareModalVisible, setIsStoryShareModalVisible] = useState(false);
+  const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
 
   const handleCommentPress = () => {
     setIsCommentsModalVisible(true);
@@ -26,6 +30,13 @@ const HomeScreen = () => {
 
   const handleSharePress = () => {
     setIsShareModalVisible(true);
+  };
+  const handleStorySharePress = () => {
+    setIsStoryShareModalVisible(true);
+  };
+
+  const handleStoryPress = () => {
+    setIsStoryModalVisible(true);
   };
 
   const closeCommentsModal = () => {
@@ -35,6 +46,13 @@ const HomeScreen = () => {
   const closeShareModal = () => {
     setIsShareModalVisible(false);
   };
+  const closeStoryShareModal = () => {
+    setIsStoryShareModalVisible(false);
+  };
+
+  const closeStoryModal = () => {
+    setIsStoryModalVisible(false);
+  };
 
 
   return (
@@ -43,10 +61,10 @@ const HomeScreen = () => {
         
         {/* Stories */}
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.storiesContainer}>
-          <TouchableOpacity style={styles.storyItem}>
+          <TouchableOpacity style={styles.storyItem} onPress={handleStorySharePress}>
             <AddIcon/>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handlePress}>
+          <TouchableOpacity onPress={handleStoryPress}>
             <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
           </TouchableOpacity>
           <TouchableOpacity onPress={handlePress}>
@@ -62,7 +80,8 @@ const HomeScreen = () => {
             <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
           </TouchableOpacity>
         </ScrollView>
-
+        <StoryShareModal visible={isStoryShareModalVisible} onClose={closeStoryShareModal} />
+        <StoryModal visible={isStoryModalVisible} onClose={closeStoryModal} />
         {/* Post Section 1 */}
         <View style={styles.postContainer}>
           <Image source={require('../assets/images/post.png')} style={styles.postImage} />
