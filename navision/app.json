@@ -15,13 +15,20 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Konumunuzu kullanmamıza izin verin."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,7 +38,6 @@
       "ms-bold": "./assets/fonts/ms-bold.ttf",
       "ms-light": "./assets/fonts/ms-light.ttf",
       "ms-italic": "./assets/fonts/ms-italic.ttf"
-
     },
     "plugins": [
       "expo-font"

@@ -1,20 +1,170 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Modal, Alert, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { db } from '../firebase'; 
+import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import MapView, { Marker } from 'react-native-maps';
+import * as ImagePicker from 'expo-image-picker';
+import { storage } from '../firebase';
+import { auth } from '../firebase';
+import * as Location from 'expo-location';
 
 const StoryShareModal = ({ visible, onClose }) => {
   const [description, setDescription] = useState('');
+  const [mediaUri, setMediaUri] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [userInfo, setUserInfo] = useState({ username: '', surname: '', profileImage: '' });
+  const [city, setCity] = useState('');
+  const [country, setCountry] = useState('');
+  const [loading, setLoading] = useState(true); // Loading durumu
+
+  const fetchUserInfo = async (currentUserId) => {
+    const userDoc = await getDoc(doc(db, 'userInfo', currentUserId));
+    if (userDoc.exists()) {
+      setUserInfo(userDoc.data());
+    } else {
+      console.log('No such user!');
+    }
+  };
+
+  const currentUserId = auth.currentUser?.uid;
+
+  useEffect(() => {
+    const fetchCurrentLocation = async () => {
+      setLoading(true); // Loading'i başlat
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        setLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+
+        const [place] = await Location.reverseGeocodeAsync(location.coords);
+        if (place) {
+          setCity(place.city || place.name);
+          setCountry(place.country);
+        }
+      } else {
+        Alert.alert('Konum izni gerekli', 'Uygulamanın konumunu kullanabilmesi için izin vermeniz gerekiyor.');
+      }
+      setLoading(false); // Loading'i durdur
+    };
+
+    if (currentUserId) {
+      fetchUserInfo(currentUserId);
+      fetchCurrentLocation();
+    }
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (visible) {
+      setDescription('');
+      setMediaUri(null);
+      setLocation(null);
+      setCity('');
+      setCountry('');
+      setUserInfo({ username: '', surname: '', profileImage: '' });
+      setLoading(true); // Modal açıldığında loading'i başlat
+    }
+  }, [visible]);
+
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      alert('Permission to access gallery is required!');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setMediaUri(result.assets[0].uri);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      let mediaUrl = null;
+      if (mediaUri) {
+        const mediaRef = ref(storage, `stories/${currentUserId}/${Date.now()}.jpg`);
+        const img = await fetch(mediaUri);
+        const bytes = await img.blob();
+        await uploadBytes(mediaRef, bytes);
+        mediaUrl = await getDownloadURL(mediaRef);
+      }
+
+      const storyData = {
+        userId: currentUserId,
+        username: userInfo.username || '',
+        surname: userInfo.surname || '',
+        profileImage: userInfo.profileImage || '',
+        description: description || '',
+        mediaUrl,
+        location: location || {
+          latitude: null,
+          longitude: null,
+        },
+        city: city || '',
+        country: country || '',
+        timestamp: new Date(),
+      };
+
+      console.log('Story Data:', storyData);
+
+      if (!storyData.userId) {
+        throw new Error('userId is undefined.');
+      }
+
+      await addDoc(collection(db, 'stories'), storyData);
+
+      Alert.alert(
+        'Başarılı!',
+        'Story başarıyla kaydedildi.',
+        [{ text: 'Tamam', onPress: onClose }]
+      );
+    } catch (error) {
+      console.error('Error sharing story:', error);
+      Alert.alert('Hata', 'Story paylaşımında bir sorun oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      // Modal kapandığında state'i sıfırlayın
+      setDescription('');
+      setMediaUri(null);
+      setLocation(location);
+      setCity('');
+      setCountry('');
+      setUserInfo({ username: '', surname: '', profileImage: '' });
+    }
+  };
+
+  const handleMapPress = (event) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    setLocation({ latitude, longitude });
+    Location.reverseGeocodeAsync({ latitude, longitude }).then((places) => {
+      const place = places[0];
+      if (place) {
+        setCity(place.city || place.name);
+        setCountry(place.country);
+      }
+    });
+  };
 
   return (
     <Modal
       animationType="slide"
       transparent={true}
       visible={visible}
-      onRequestClose={onClose} // Android'de geri tuşuyla kapatmak için gerekli
+      onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerText}>Story</Text>
             <TouchableOpacity onPress={onClose}>
@@ -22,16 +172,14 @@ const StoryShareModal = ({ visible, onClose }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Media Preview */}
           <View style={styles.mediaPreview}>
-            <Image 
-              source={{ uri: 'https://your-image-url.com' }} 
-              style={styles.media} 
-              resizeMode="cover" 
-            />
+            {mediaUri ? (
+              <Image source={{ uri: mediaUri }} style={styles.media} resizeMode="cover" />
+            ) : (
+              <Text>No media selected</Text>
+            )}
           </View>
 
-          {/* Description Input */}
           <TextInput
             style={styles.input}
             placeholder="Add a description..."
@@ -39,21 +187,33 @@ const StoryShareModal = ({ visible, onClose }) => {
             onChangeText={setDescription}
           />
 
-          {/* Location and Media Icons */}
-          <View style={styles.iconRow}>
-            <TouchableOpacity style={styles.iconButton}>
-              <MaterialIcons name="add-location" size={24} color="black" />
-              <Text style={styles.iconText}>Location</Text>
-            </TouchableOpacity>
+          {loading ? ( // Loading durumu kontrolü
+            <ActivityIndicator size="large" color="#0000ff" />
+          ) : (
+            <MapView
+              style={styles.map}
+              onPress={handleMapPress}
+              region={{
+                latitude: location ? location.latitude : 37.78825,
+                longitude: location ? location.longitude : -122.4324,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }}
+            >
+              {location && (
+                <Marker coordinate={{ latitude: location.latitude, longitude: location.longitude }} />
+              )}
+            </MapView>
+          )}
 
-            <TouchableOpacity style={styles.iconButton}>
+          <View style={styles.iconRow}>
+            <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
               <Ionicons name="image" size={24} color="black" />
               <Text style={styles.iconText}>Media</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Share Button */}
-          <TouchableOpacity style={styles.shareButton}>
+          <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
             <Text style={styles.shareButtonText}>Share</Text>
           </TouchableOpacity>
         </View>
@@ -67,11 +227,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Modal arka plan karartması
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContainer: {
     width: '100%',
-    height:'100%',
+    height: '100%',
     padding: 20,
     backgroundColor: 'white',
     borderRadius: 10,
@@ -104,22 +264,27 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 20,
   },
+  map: {
+    width: '100%',
+    height: 200,
+    marginBottom: 20,
+  },
   iconRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 20,
+    marginVertical: 10,
   },
   iconButton: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
   },
   iconText: {
-    marginLeft: 5,
+    marginTop: 5,
   },
   shareButton: {
-    backgroundColor: '#77dd77',
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    borderRadius: 5,
     alignItems: 'center',
   },
   shareButtonText: {
