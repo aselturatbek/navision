@@ -34,7 +34,8 @@
     "react-native-screens": "3.31.1",
     "react-native-svg": "15.2.0",
     "react-native-vector-icons": "^10.2.0",
-    "react-native-webview": "^13.12.2"
+    "react-native-webview": "^13.12.2",
+    "expo-location": "~17.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

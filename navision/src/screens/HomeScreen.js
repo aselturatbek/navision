@@ -1,9 +1,5 @@
-import React,  { useState } from 'react';
+import React,  { useState, useEffect} from 'react';
 import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import Svg, { Ellipse } from "react-native-svg";
-import MaterialCommunityIconsIcon from "react-native-vector-icons/MaterialCommunityIcons";
-import EvilIconsIcon from "react-native-vector-icons/EvilIcons";
 import SaveIcon from '../assets/icons/SaveIcon';
 import LocationIcon from '../assets/icons/LocationIcon';
 import CommentIcon from '../assets/icons/CommentIcon';
@@ -14,8 +10,51 @@ import CommentsModal from '../components/CommentsModal';
 import ShareModal from '../components/ShareModal';
 import StoryShareModal from '../components/StoryShareModal';
 import StoryModal from '../components/StoryModal';
-
+import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 const HomeScreen = () => {
+  const [user, setUser] = useState(null);
+  const firestore = getFirestore();
+  const auth = getAuth(); // Doğru şekilde auth nesnesini alıyoruz.
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const currentUser = auth.currentUser; // auth.currentUser ile kullanıcıyı alıyoruz.
+        if (currentUser) {
+          const userId = currentUser.uid; // Kullanıcı ID'sini alın
+          const userDocRef = doc(firestore, 'userInfo', userId); // Kullanıcı dökümanı referansı
+
+          // for realtime updating
+          const unsubscribe = onSnapshot(userDocRef, (doc) => {
+            if (doc.exists()) {
+              setUser(doc.data());
+            } else {
+              console.log("Kullanıcı bilgileri bulunamadı.");
+            }
+          });
+
+          // Kullanıcı verisini bir kez almak için
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            setUser(userDoc.data());
+          } else {
+            console.log("Kullanıcı bilgileri bulunamadı.");
+          }
+
+          // Dinleyiciyi temizlemek için
+          return () => unsubscribe();
+        } else {
+          console.log("Kullanıcı oturum açmamış."); // Kullanıcı oturumu açık değilse mesaj verin
+        }
+      } catch (error) {
+        console.error("Kullanıcı verisi çekilirken hata oluştu: ", error);
+      }
+    };
+
+    fetchUserData();
+  }, [firestore, auth]);
+
   const handlePress = () => {
     console.log('Image pressed');
   };
@@ -65,7 +104,7 @@ const HomeScreen = () => {
             <AddIcon/>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleStoryPress}>
-            <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
+            <Image source={{ uri: user?.profileImage || 'https://via.placeholder.com/150' }} style={styles.storyImage} />
           </TouchableOpacity>
           <TouchableOpacity onPress={handlePress}>
             <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
@@ -96,8 +135,8 @@ const HomeScreen = () => {
               </View>
               
               <View style={styles.authorRow}>
-                <Image source={require('../assets/images/default_cat.jpg')} style={styles.authorImage} />
-                <Text style={styles.postAuthor}>Kerem Baran TAN 4sa</Text>
+                <Image source={{ uri: user?.profileImage || 'https://via.placeholder.com/150' }} style={styles.authorImage} />
+                <Text style={styles.postAuthor}>{user ? `${user.name} ${user.surname}` : 'Name Surname'} 4sa</Text>
               </View>
 
               <Text style={styles.postDescription}>

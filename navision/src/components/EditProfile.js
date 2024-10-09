@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, TextInput, Button, Alert, StyleSheet, Text, Image } from 'react-native';
-import { auth } from '../firebase'; // Firebase yapılandırmanızı burada ekleyin
+import { View, TextInput, Button, Alert, StyleSheet, Text, Image, ScrollView } from 'react-native';
+import { auth } from '../firebase';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
-import { getDatabase, ref, set, get } from 'firebase/database'; // Realtime Database importu
+import { getDatabase, ref, set } from 'firebase/database';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native'; // Navigation kullanımı için ekledik
+import { useNavigation } from '@react-navigation/native';
 
 const EditProfile = ({ route }) => {
   const navigation = useNavigation();
@@ -22,13 +22,12 @@ const EditProfile = ({ route }) => {
   });
 
   const firestore = getFirestore();
-  const database = getDatabase(); // Realtime Database referansı
+  const database = getDatabase();
 
   useEffect(() => {
     const fetchUserInfo = async () => {
       const userId = auth.currentUser.uid;
 
-      // Firestore'dan kullanıcı bilgilerini al
       const docRef = doc(firestore, 'userInfo', userId);
       const docSnap = await getDoc(docRef);
 
@@ -38,18 +37,16 @@ const EditProfile = ({ route }) => {
     };
 
     fetchUserInfo();
-  }, [firestore]);
+  }, [firestore, auth]);
 
   const updateProfile = async () => {
     const userId = auth.currentUser.uid;
-
-    // E-posta adresi güncellenirse doğrulama işlemi yapılacak
     const user = auth.currentUser;
 
     if (userInfo.email !== user.email) {
       try {
         await user.updateEmail(userInfo.email);
-        await user.sendEmailVerification(); // E-posta doğrulama gönder
+        await user.sendEmailVerification();
         Alert.alert("Başarılı", "E-posta adresi güncellendi ve doğrulama e-postası gönderildi. Lütfen e-posta adresinizi kontrol edin.");
       } catch (error) {
         Alert.alert("Hata", error.message);
@@ -57,16 +54,13 @@ const EditProfile = ({ route }) => {
       }
     }
 
-    // Firestore'da güncelle
     await setDoc(doc(firestore, 'userInfo', userId), userInfo);
-
-    // Realtime Database'de güncelle
     await set(ref(database, 'userInfo/' + userId), userInfo);
 
     Alert.alert("Başarılı", "Profil başarıyla güncellendi.", [
       { text: "Tamam", onPress: () => {
-        onUpdate(userInfo); // Kullanıcı bilgileri güncellendiğinde parent bileşene bildir
-        navigation.navigate('Profile'); // Profil sayfasına yönlendirme
+        onUpdate(userInfo);
+        navigation.navigate('Profile');
       }}
     ]);
   };
@@ -86,10 +80,10 @@ const EditProfile = ({ route }) => {
     });
 
     if (!result.canceled) {
-      const source = result.assets[0].uri; // Seçilen resmin URI'si
-      const updatedUserInfo = { ...userInfo, profileImage: source }; // Güncellenmiş kullanıcı bilgileri
-      setUserInfo(updatedUserInfo); // Yeni resmi state'e ayarla
-      onUpdate(updatedUserInfo); // Güncellenmiş bilgileri üst bileşene gönder
+      const source = result.assets[0].uri;
+      const updatedUserInfo = { ...userInfo, profileImage: source };
+      setUserInfo(updatedUserInfo);
+      onUpdate(updatedUserInfo);
     } else {
       console.log('Kullanıcı resmi seçmeyi iptal etti.');
     }
@@ -100,7 +94,9 @@ const EditProfile = ({ route }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
+      <Text style={styles.header}>Profilinizi Düzenleyin</Text>
+      
       <TextInput
         placeholder="Kullanıcı Adı"
         value={userInfo.username}
@@ -158,7 +154,7 @@ const EditProfile = ({ route }) => {
       )}
       
       <Button title="Profil Güncelle" onPress={updateProfile} />
-    </View>
+    </ScrollView>
   );
 };
 
@@ -166,7 +162,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: 'transparent',
+    backgroundColor: '#f8f9fa', // Daha açık bir arka plan rengi
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   input: {
     height: 50,
@@ -175,12 +177,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 15,
     paddingHorizontal: 10,
+    backgroundColor: '#ffffff', // Giriş kutuları için beyaz arka plan
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
     marginVertical: 10,
+    alignSelf: 'center', // Resmi merkezde göster
   },
 });
 

@@ -21,36 +21,62 @@ import NotificationIcon from '../assets/icons/NotificationIcon';
 import MoreIcon from '../assets/icons/MoreIcon';
 import PlusIcon from '../assets/icons/PlusIcon';
 import SearchIcon from '../assets/icons/SearchIcon';
-
-
-const loadFonts = async () => {
-  await Font.loadAsync({
-    'ms-regular': require('../assets/fonts/ms-regular.ttf'),
-    'ms-bold': require('../assets/fonts/ms-bold.ttf'),
-    'ms-light': require('../assets/fonts/ms-light.ttf'),
-    'ms-italic': require('../assets/fonts/ms-italic.ttf'),
-  });
-};
+import { getAuth } from 'firebase/auth'; 
+import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const Header = ({ onMenuPress }) => {
+const fetchCurrentUser = async (setCurrentUser) => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (user) {
+    const db = getFirestore();
+    const userRef = doc(db, 'userInfo', user.uid);
+
+    // Firestore'daki verileri dinlemek için onSnapshot kullanın
+    const unsubscribe = onSnapshot(userRef, (doc) => {
+      if (doc.exists()) {
+        const userData = doc.data();
+        setCurrentUser({
+          uid: user.uid,
+          email: user.email,
+          profileImage: userData.profileImage || 'https://via.placeholder.com/150',
+          displayName: userData.username || user.email.split('@')[0],
+        });
+      } else {
+        setCurrentUser(null); // Kullanıcı verisi yoksa null döndür
+      }
+    }, (error) => {
+      console.error("Error fetching user data:", error);
+      setCurrentUser(null); // Hata durumunda da null döndür
+    });
+
+    // Unsubscribe from the listener on component unmount
+    return unsubscribe;
+  } else {
+    setCurrentUser(null); // Kullanıcı yoksa null döndür
+  }
+};
+
+const Header = ({ onMenuPress, user }) => {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 18, backgroundColor: 'transparent', marginTop: 30 }}>
       <TouchableOpacity onPress={onMenuPress}>
-        <Text style={{ fontSize: 20, fontWeight: 'bold', fontFamily: 'ms-bold', marginTop: 8, marginLeft:10  }}>navision <MoreIcon/></Text>
-        
+        <Text style={{ fontSize: 20, fontWeight: 'bold', fontFamily: 'ms-bold', marginTop: 8, marginLeft: 10 }}>
+          navision <MoreIcon />
+        </Text>
       </TouchableOpacity>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <TouchableOpacity style={{ marginRight: 5, marginBottom:-15}}>
+        <TouchableOpacity style={{ marginRight: 5, marginBottom: -15 }}>
           <NotificationIcon size={25} color="black" />
         </TouchableOpacity>
         <TouchableOpacity style={{ marginRight: 16 }}>
           <MessageIcon size={25} color="black" />
         </TouchableOpacity>
         <Image 
-          source={require('../assets/images/default_cat.jpg')}
+          source={{ uri: user?.profileImage || 'https://via.placeholder.com/150' }}
           style={{ width: 40, height: 40, borderRadius: 20 }}
         />
       </View>
@@ -59,29 +85,42 @@ const Header = ({ onMenuPress }) => {
 };
 
 const HomeTabs = ({ route, navigation }) => {
-  const { username, email} = route.params || {};
+  const { username, profileImage, name, surname } = route.params || {};
   const [menuVisible, setMenuVisible] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
   };
 
+  useEffect(() => {
+    const unsubscribe = fetchCurrentUser(setCurrentUser); // Burada setCurrentUser'ı argüman olarak geçin
+  
+    // Cleanup function to unsubscribe
+    return () => {
+      if (unsubscribe) {
+        unsubscribe(); // Dinleyiciyi kaldır
+      }
+    };
+  }, []);
+  
+
   return (
     <View style={{ flex: 1 }}>
-      <Header onMenuPress={toggleMenu} />
+      <Header onMenuPress={toggleMenu} user={currentUser} />
       {menuVisible && (
-        <SideMenu onClose={() => setMenuVisible(false)}/>
+        <SideMenu onClose={() => setMenuVisible(false)} />
       )}
-      <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0 ,padding:10,paddingHorizontal:20},
-    tabBarActiveTintColor: 'black', 
-    tabBarInactiveTintColor: 'gray' 
-    }}>
+      <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0, padding: 10, paddingHorizontal: 20 },
+        tabBarActiveTintColor: 'black', 
+        tabBarInactiveTintColor: 'gray' 
+      }}>
         <Tab.Screen 
           name="Home" 
-          children={() => <HomeScreen username={username} />} 
+          children={() => <HomeScreen username={username} profileImage={profileImage} name={name} surname={surname} />} 
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color, focused}) => <HomeIcon size={25} color={focused ? "black" : color} /> 
+            tabBarIcon: ({ color, focused }) => <HomeIcon size={25} color={focused ? "black" : color} /> 
           }} 
         />
         <Tab.Screen 
@@ -89,7 +128,7 @@ const HomeTabs = ({ route, navigation }) => {
           component={SearchScreen} 
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color,focused}) => <SearchIcon size={25} color={focused ? "black" : color} />
+            tabBarIcon: ({ color, focused }) => <SearchIcon size={25} color={focused ? "black" : color} />
           }}
         />
         <Tab.Screen 
@@ -97,7 +136,7 @@ const HomeTabs = ({ route, navigation }) => {
           component={EditProfile} 
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color, focused }) => <PlusIcon color={focused ? "black" : color}/>
+            tabBarIcon: ({ color, focused }) => <PlusIcon color={focused ? "black" : color} />
           }}
         />
         <Tab.Screen 
@@ -113,7 +152,7 @@ const HomeTabs = ({ route, navigation }) => {
           component={ProfileScreen}
           options={{ 
             tabBarLabel: () => null,
-            tabBarIcon: ({ color,focused }) => <BagIcon   size={25} color={focused ? "black" : color} /> 
+            tabBarIcon: ({ color, focused }) => <BagIcon size={25} color={focused ? "black" : color} /> 
           }} 
         />
       </Tab.Navigator>
@@ -123,6 +162,15 @@ const HomeTabs = ({ route, navigation }) => {
 
 const AppNavigator = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  const loadFonts = async () => {
+    await Font.loadAsync({
+      'ms-regular': require('../assets/fonts/ms-regular.ttf'),
+      'ms-bold': require('../assets/fonts/ms-bold.ttf'),
+      'ms-light': require('../assets/fonts/ms-light.ttf'),
+      'ms-italic': require('../assets/fonts/ms-italic.ttf'),
+    });
+  };
 
   useEffect(() => {
     loadFonts().then(() => setFontsLoaded(true));
