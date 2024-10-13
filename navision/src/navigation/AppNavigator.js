@@ -23,6 +23,8 @@ import PlusIcon from '../assets/icons/PlusIcon';
 import SearchIcon from '../assets/icons/SearchIcon';
 import { getAuth } from 'firebase/auth'; 
 import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import StoryUpload from '../mediaupload/StoryUpload';
+
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -191,6 +193,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
         <Stack.Screen name="HomeTabs" component={HomeTabs} options={{ headerShown: false }} />
         <Stack.Screen name="EditProfile" component={EditProfile} options={{ headerShown: false }} />
+        <Stack.Screen name="StoryUpload" component={StoryUpload} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

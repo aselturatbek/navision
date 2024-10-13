@@ -12,7 +12,9 @@ import StoryShareModal from '../components/StoryShareModal';
 import StoryModal from '../components/StoryModal';
 import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { useNavigation } from '@react-navigation/native';
 const HomeScreen = () => {
+  const navigation = useNavigation();
   const [user, setUser] = useState(null);
   const firestore = getFirestore();
   const auth = getAuth(); // Doğru şekilde auth nesnesini alıyoruz.
@@ -100,7 +102,7 @@ const HomeScreen = () => {
         
         {/* Stories */}
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.storiesContainer}>
-          <TouchableOpacity style={styles.storyItem} onPress={handleStorySharePress}>
+          <TouchableOpacity style={styles.storyItem} onPress={() => navigation.navigate('StoryUpload')}>
             <AddIcon/>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleStoryPress}>
@@ -119,7 +121,7 @@ const HomeScreen = () => {
             <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
           </TouchableOpacity>
         </ScrollView>
-        <StoryShareModal visible={isStoryShareModalVisible} onClose={closeStoryShareModal} />
+        
         <StoryModal visible={isStoryModalVisible} onClose={closeStoryModal} />
         {/* Post Section 1 */}
         <View style={styles.postContainer}>
