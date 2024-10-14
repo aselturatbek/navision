@@ -1,115 +1,48 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Modal } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, Image, Modal, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
-const StoryModal = ({ visible, onClose }) => {
-  // Example data
-  const profileImage = 'https://example.com/profile.jpg'; // Replace with an actual image URL
-  const username = 'john_doe';
-  const timestamp = '2 hours ago';
-  const location = 'Istanbul, Turkey';
-  const description = 'Enjoying a beautiful sunset at the beach!';
-
+const StoryModal = ({ visible, onClose, stories }) => {
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalContainer}>
-        {/* Full-screen Media Preview */}
-        <View style={styles.mediaPreview}>
-          <Image 
-            source={{ uri: 'https://example.com/story-image.jpg' }} 
-            style={styles.media} 
-            resizeMode="cover" 
-          />
-        </View>
-
-        {/* Overlaying Header with Profile Info */}
-        <View style={styles.header}>
-          <View style={styles.profileContainer}>
-            <Image source={{ uri: profileImage }} style={styles.profileImage} />
-            <View style={styles.userInfo}>
-              <Text style={styles.username}>{username}</Text>
-              <Text style={styles.timestamp}>{timestamp} • {location}</Text>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <ScrollView style={styles.container}>
+        {stories.length > 0 ? (
+          stories.map((story) => (
+            <View key={story.id} style={styles.storyContainer}>
+              <Image source={{ uri: story.profileImage }} style={styles.profileImage} />
+              <Text style={styles.username}>{story.username}</Text>
+              <Text style={styles.timestamp}>{new Date(story.timestamp?.toDate()).toLocaleString()}</Text>
+              <Text style={styles.location}>
+                {story.city}, {story.country}
+              </Text>
+              <Text style={styles.description}>{story.description}</Text>
+              {story.mediaUrl && (
+                <Image source={{ uri: story.mediaUrl }} style={styles.media} />
+              )}
             </View>
-          </View>
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={28} color="white" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Description at the bottom */}
-        <View style={styles.descriptionContainer}>
-          <Text style={styles.description}>{description}</Text>
-        </View>
-      </View>
+          ))
+        ) : (
+          <Text style={styles.noStoriesText}>Bu kullanıcıya ait hikaye bulunamadı.</Text>
+        )}
+      </ScrollView>
+      <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <Text style={styles.closeButtonText}>Kapat</Text>
+      </TouchableOpacity>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)', // A darker background for the full-screen effect
-    justifyContent: 'space-between',
-  },
-  mediaPreview: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  media: {
-    width: '100%',
-    height: '100%',
-  },
-  header: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  profileContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  userInfo: {
-    flexDirection: 'column',
-  },
-  username: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  timestamp: {
-    color: 'gray',
-    fontSize: 12,
-  },
-  descriptionContainer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
-  },
-  description: {
-    color: 'white',
-    fontSize: 14,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Transparent background for readability
-    padding: 10,
-    borderRadius: 10,
-    textAlign: 'center',
-  },
+  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  storyContainer: { marginBottom: 20, borderBottomWidth: 1, borderColor: '#ddd', paddingBottom: 10 },
+  profileImage: { width: 50, height: 50, borderRadius: 25, marginBottom: 10 },
+  username: { fontWeight: 'bold', fontSize: 16 },
+  timestamp: { color: '#888', marginBottom: 5 },
+  location: { fontSize: 14, marginBottom: 5 },
+  description: { fontSize: 16, marginBottom: 10 },
+  media: { width: '100%', height: 200, borderRadius: 10 },
+  noStoriesText: { textAlign: 'center', marginTop: 20, fontSize: 16, color: '#888' },
+  closeButton: { alignItems: 'center', padding: 10, backgroundColor: '#4CAF50', borderRadius: 5 },
+  closeButtonText: { color: '#fff', fontWeight: 'bold' },
 });
 
 export default StoryModal;

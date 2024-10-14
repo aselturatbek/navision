@@ -24,58 +24,43 @@ const HomeScreen = () => {
   useEffect(() => {
     const fetchUserDataAndStories = async () => {
       try {
-        const currentUser = auth.currentUser; // auth.currentUser ile kullanıcıyı alıyoruz.
-
-        // Kullanıcı verilerini alma
+        const currentUser = auth.currentUser;
         if (currentUser) {
-          const userId = currentUser.uid; // Kullanıcı ID'sini al
-          const userDocRef = doc(firestore, 'userInfo', userId); // Kullanıcı dökümanı referansı
+          const userId = currentUser.uid;
+          const userDocRef = doc(firestore, 'userInfo', userId);
 
-          // Realtime update için dinleyici
           const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
             if (doc.exists()) {
               setUser(doc.data());
-            } else {
-              console.log("Kullanıcı bilgileri bulunamadı.");
             }
           });
 
-          // Kullanıcı verisini bir kez almak için
-          const userDoc = await getDoc(userDocRef);
-          if (userDoc.exists()) {
-            setUser(userDoc.data());
-          } else {
-            console.log("Kullanıcı bilgileri bulunamadı.");
-          }
-
-          // Hikaye verilerini alma
           const storiesCollectionRef = collection(firestore, 'stories');
           const unsubscribeStories = onSnapshot(storiesCollectionRef, (snapshot) => {
-            const storiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const storiesData = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
             setStories(storiesData);
           });
 
-          // Unsubscribe from the listener on unmount
           return () => {
-            unsubscribeUser(); // Kullanıcı dinleyicisini temizle
-            unsubscribeStories(); // Hikaye dinleyicisini temizle
+            unsubscribeUser();
+            unsubscribeStories();
           };
         } else {
-          console.log("Kullanıcı oturum açmamış."); // Kullanıcı oturumu açık değilse mesaj verin
+          console.log('Kullanıcı oturum açmamış.');
         }
       } catch (error) {
-        console.error("Kullanıcı verisi çekilirken hata oluştu: ", error);
+        console.error('Veri alınırken hata oluştu:', error);
       }
     };
 
     fetchUserDataAndStories();
   }, [firestore, auth]);
 
-  // Kullanıcı hikayelerini grup halinde göster
   const groupedStories = stories.reduce((acc, story) => {
-    const userId = story.userId; // Her hikayenin kullanıcı ID'si
-
-    // Kullanıcının hikayesi zaten varsa ekle
+    const userId = story.userId;
     if (!acc[userId]) {
       acc[userId] = {
         profileImage: story.profileImage,
@@ -85,8 +70,6 @@ const HomeScreen = () => {
     acc[userId].stories.push(story);
     return acc;
   }, {});
-
-
   const handlePress = () => {
     console.log('Image pressed');
   };
@@ -106,11 +89,12 @@ const HomeScreen = () => {
     setIsStoryShareModalVisible(true);
   };
 
-  const handleStoryPress = () => {
-    const userStories = groupedStories[userId].stories;
-  setIsStoryModalVisible(true);
-  setCurrentUserStories(userStories);
+  const handleStoryPress = (userId) => {
+    const userStories = groupedStories[userId]?.stories || [];
+    setCurrentUserStories(userStories);
+    setIsStoryModalVisible(true);
   };
+
   const [currentUserStories, setCurrentUserStories] = useState([]);
   const closeCommentsModal = () => {
     setIsCommentsModalVisible(false);
@@ -138,8 +122,11 @@ const HomeScreen = () => {
             <AddIcon/>
           </TouchableOpacity>
           {Object.keys(groupedStories).map((userId) => (
-            <TouchableOpacity key={userId} onPress={() => handleStoryPress(groupedStories[userId].stories[0])}>
-              <Image source={{ uri: groupedStories[userId].profileImage || 'https://via.placeholder.com/150' }} style={styles.storyImage} />
+            <TouchableOpacity key={userId} onPress={() => handleStoryPress(userId)}>
+              <Image
+                source={{ uri: groupedStories[userId].profileImage || 'https://via.placeholder.com/150' }}
+                style={styles.storyImage}
+              />
             </TouchableOpacity>
           ))}
         </ScrollView>
