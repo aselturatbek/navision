@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { getDatabase, ref, get } from 'firebase/database';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const auth = getAuth();
+  const firestore = getFirestore();
 
   const handleLogin = async () => {
     try {
@@ -18,16 +19,16 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
 
-      const db = getDatabase();
-      const usernameRef = ref(db, 'userInfo/' + user.uid + '/username');
-      const snapshot = await get(usernameRef);
+      // Firestore'dan kullanıcı bilgilerini al
+      const userDoc = await getDoc(doc(firestore, 'userInfo', user.uid));
 
-      if (snapshot.exists()) {
-        const username = snapshot.val();
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const username = userData.username; // Kullanıcı adını al
         Alert.alert('Giriş başarılı!', `Hoş geldin, ${username}`);
         navigation.replace('HomeTabs', { username });
       } else {
-        Alert.alert('Kullanıcı adı bulunamadı');
+        Alert.alert('Kullanıcı bilgileri bulunamadı');
       }
     } catch (error) {
       Alert.alert("Hata", error.message);
@@ -160,3 +161,4 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
+
