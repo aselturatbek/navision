@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDoc, doc, getDocs, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import MapView, { Marker } from 'react-native-maps';
 import * as ImagePicker from 'expo-image-picker';
-import {auth,db,storage} from '../firebase';
+import { auth, db, storage } from '../firebase';
 import * as Location from 'expo-location';
 
 const StoryUpload = ({ navigation }) => {
@@ -68,11 +68,33 @@ const StoryUpload = ({ navigation }) => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [16, 9],
-      quality: 0.7,
+      quality: 0.6,
     });
 
     if (!result.canceled) {
       setMediaUri(result.assets[0].uri);
+    }
+  };
+
+  const updateStoriesWithNewProfileImage = async (newProfileImage) => {
+    try {
+      const storiesRef = collection(db, 'stories');
+      const storiesSnapshot = await getDocs(storiesRef);
+
+      const batch = writeBatch(db); // Firestore batched write işlemi
+
+      storiesSnapshot.forEach((doc) => {
+        const storyData = doc.data();
+        if (storyData.userId === currentUserId) {
+          // Eğer hikaye bu kullanıcıya aitse, profil resmini güncelle
+          batch.update(doc.ref, { profileImage: newProfileImage });
+        }
+      });
+
+      await batch.commit(); // Tüm güncellemeleri tek seferde uygula
+      console.log('Hikayeler güncellendi.');
+    } catch (error) {
+      console.error('Hikaye güncellemeleri sırasında hata oluştu: ', error);
     }
   };
 
@@ -110,7 +132,13 @@ const StoryUpload = ({ navigation }) => {
         throw new Error('userId is undefined.');
       }
 
+      // Story ekle
       await addDoc(collection(db, 'stories'), storyData);
+
+      // Profil resmi güncellendiyse hikayeleri güncelle
+      if (userInfo.profileImage) {
+        await updateStoriesWithNewProfileImage(userInfo.profileImage);
+      }
 
       Alert.alert(
         'Başarılı!',

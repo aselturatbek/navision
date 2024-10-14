@@ -10,7 +10,7 @@ import CommentsModal from '../components/CommentsModal';
 import ShareModal from '../components/ShareModal';
 import StoryShareModal from '../components/StoryShareModal';
 import StoryModal from '../components/StoryModal';
-import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, onSnapshot,collection } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 const HomeScreen = () => {
@@ -18,17 +18,21 @@ const HomeScreen = () => {
   const [user, setUser] = useState(null);
   const firestore = getFirestore();
   const auth = getAuth(); // Doğru şekilde auth nesnesini alıyoruz.
+  const [stories, setStories] = useState([]);
 
+  // User and Stories fetching
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUserDataAndStories = async () => {
       try {
         const currentUser = auth.currentUser; // auth.currentUser ile kullanıcıyı alıyoruz.
+
+        // Kullanıcı verilerini alma
         if (currentUser) {
-          const userId = currentUser.uid; // Kullanıcı ID'sini alın
+          const userId = currentUser.uid; // Kullanıcı ID'sini al
           const userDocRef = doc(firestore, 'userInfo', userId); // Kullanıcı dökümanı referansı
 
-          // for realtime updating
-          const unsubscribe = onSnapshot(userDocRef, (doc) => {
+          // Realtime update için dinleyici
+          const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
             if (doc.exists()) {
               setUser(doc.data());
             } else {
@@ -44,8 +48,18 @@ const HomeScreen = () => {
             console.log("Kullanıcı bilgileri bulunamadı.");
           }
 
-          // Dinleyiciyi temizlemek için
-          return () => unsubscribe();
+          // Hikaye verilerini alma
+          const storiesCollectionRef = collection(firestore, 'stories');
+          const unsubscribeStories = onSnapshot(storiesCollectionRef, (snapshot) => {
+            const storiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setStories(storiesData);
+          });
+
+          // Unsubscribe from the listener on unmount
+          return () => {
+            unsubscribeUser(); // Kullanıcı dinleyicisini temizle
+            unsubscribeStories(); // Hikaye dinleyicisini temizle
+          };
         } else {
           console.log("Kullanıcı oturum açmamış."); // Kullanıcı oturumu açık değilse mesaj verin
         }
@@ -54,8 +68,24 @@ const HomeScreen = () => {
       }
     };
 
-    fetchUserData();
+    fetchUserDataAndStories();
   }, [firestore, auth]);
+
+  // Kullanıcı hikayelerini grup halinde göster
+  const groupedStories = stories.reduce((acc, story) => {
+    const userId = story.userId; // Her hikayenin kullanıcı ID'si
+
+    // Kullanıcının hikayesi zaten varsa ekle
+    if (!acc[userId]) {
+      acc[userId] = {
+        profileImage: story.profileImage,
+        stories: [],
+      };
+    }
+    acc[userId].stories.push(story);
+    return acc;
+  }, {});
+
 
   const handlePress = () => {
     console.log('Image pressed');
@@ -77,9 +107,11 @@ const HomeScreen = () => {
   };
 
   const handleStoryPress = () => {
-    setIsStoryModalVisible(true);
+    const userStories = groupedStories[userId].stories;
+  setIsStoryModalVisible(true);
+  setCurrentUserStories(userStories);
   };
-
+  const [currentUserStories, setCurrentUserStories] = useState([]);
   const closeCommentsModal = () => {
     setIsCommentsModalVisible(false);
   };
@@ -105,24 +137,14 @@ const HomeScreen = () => {
           <TouchableOpacity style={styles.storyItem} onPress={() => navigation.navigate('StoryUpload')}>
             <AddIcon/>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleStoryPress}>
-            <Image source={{ uri: user?.profileImage || 'https://via.placeholder.com/150' }} style={styles.storyImage} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handlePress}>
-            <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handlePress}>
-            <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handlePress}>
-            <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handlePress}>
-            <Image source={require('../assets/images/default_cat.jpg')} style={styles.storyImage} />
-          </TouchableOpacity>
+          {Object.keys(groupedStories).map((userId) => (
+            <TouchableOpacity key={userId} onPress={() => handleStoryPress(groupedStories[userId].stories[0])}>
+              <Image source={{ uri: groupedStories[userId].profileImage || 'https://via.placeholder.com/150' }} style={styles.storyImage} />
+            </TouchableOpacity>
+          ))}
         </ScrollView>
         
-        <StoryModal visible={isStoryModalVisible} onClose={closeStoryModal} />
+        <StoryModal visible={isStoryModalVisible} onClose={closeStoryModal} stories={currentUserStories} /> 
         {/* Post Section 1 */}
         <View style={styles.postContainer}>
           <Image source={require('../assets/images/post.png')} style={styles.postImage} />
