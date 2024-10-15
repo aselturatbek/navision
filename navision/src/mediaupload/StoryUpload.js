@@ -68,7 +68,7 @@ const StoryUpload = ({ navigation }) => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [16, 9],
-      quality: 0.6,
+      quality: 0.5,
     });
 
     if (!result.canceled) {

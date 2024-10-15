@@ -11,7 +11,6 @@ import MessageScreen from '../screens/MessageScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SideMenu from '../components/SideMenu';
 import EditProfile from '../components/EditProfile';
-import { Feather } from 'react-native-vector-icons'; // Feather icons
 import * as Font from 'expo-font'; // Import expo-font
 import HomeIcon from '../assets/icons/HomeIcon';
 import BagIcon from '../assets/icons/BagIcon';
@@ -24,7 +23,7 @@ import SearchIcon from '../assets/icons/SearchIcon';
 import { getAuth } from 'firebase/auth'; 
 import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import StoryUpload from '../mediaupload/StoryUpload';
-
+import PostUpload from '../mediaupload/PostUpload';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -134,8 +133,8 @@ const HomeTabs = ({ route, navigation }) => {
           }}
         />
         <Tab.Screen 
-          name="EditProfile" 
-          component={EditProfile} 
+          name="PostUpload" 
+          component={PostUpload} 
           options={{ 
             tabBarLabel: () => null,
             tabBarIcon: ({ color, focused }) => <PlusIcon color={focused ? "black" : color} />
