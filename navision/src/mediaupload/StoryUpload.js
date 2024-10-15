@@ -7,6 +7,25 @@ import MapView, { Marker } from 'react-native-maps';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../firebase';
 import * as Location from 'expo-location';
+import * as ImageManipulator from 'expo-image-manipulator';
+
+const pickImage = async () => {
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [16, 9],
+    quality: 0.5,
+  });
+
+  if (!result.canceled) {
+    const manipulatedImage = await ImageManipulator.manipulateAsync(
+      result.assets[0].uri,
+      [{ resize: { width: 800 } }], // Resmi 800 px genişliğine ayarlar
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // Sıkıştırma ve format
+    );
+    setMediaUri(manipulatedImage.uri);
+  }
+};
 
 const StoryUpload = ({ navigation }) => {
   const [description, setDescription] = useState('');
