@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, Image, ActivityIndicator, StyleSheet } fr
 import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import LoginScreen from '../screens/LoginScreen';
-import RegisterScreen from '../screens/RegisterScreen';
+import LoginScreen from '../entry/LoginScreen';
+import RegisterScreen from '../entry/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
 import MessageScreen from '../screens/MessageScreen';
@@ -24,6 +24,8 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import StoryUpload from '../mediaupload/StoryUpload';
 import PostUpload from '../mediaupload/PostUpload';
+import WelcomeScreen from '../entry/WelcomeScreen';
+
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -188,6 +190,7 @@ const AppNavigator = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator>
+        <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
         <Stack.Screen name="HomeTabs" component={HomeTabs} options={{ headerShown: false }} />
