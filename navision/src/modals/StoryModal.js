@@ -1,48 +1,148 @@
-import React from 'react';
-import { View, Text, Image, Modal, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  Modal,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Video } from 'expo-av';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+const timeAgo = (timestamp) => {
+  const now = new Date();
+  const postDate = timestamp.toDate();
+  const diffInMs = now - postDate;
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMinutes / 60);
+
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes}dk önce`;
+  } else if (diffInHours < 24) {
+    return `${diffInHours}sa önce`;
+  } else {
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}g önce`;
+  }
+};
 
 const StoryModal = ({ visible, onClose, stories }) => {
+  const videoRef = useRef(null);
+
+  const renderStoryItem = ({ item }) => (
+    <View style={styles.storyContainer}>
+      <View style={styles.header}>
+        <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
+        <View style={styles.textContainer}>
+          <Text style={styles.username}>{`${item.username}`}</Text>
+          <Text style={styles.timestamp}>{timeAgo(item.timestamp)}</Text>
+        </View>
+      </View>
+
+      {item.mediaUrl && item.mediaUrl.endsWith('.mp4') ? (
+        <Video
+          ref={videoRef}
+          source={{ uri: item.mediaUrl }}
+          style={styles.media}
+          resizeMode="cover"
+          shouldPlay
+          isLooping
+          muted={false}
+          onPlaybackStatusUpdate={(status) => {
+            if (!status.isPlaying && status.isLoaded) {
+              videoRef.current.playAsync();
+            }
+          }}
+        />
+      ) : (
+        <Image source={{ uri: item.mediaUrl }} style={styles.media} />
+      )}
+
+      <Text style={styles.location}>{`${item.city}, ${item.country}`}</Text>
+      <Text style={styles.description}>{item.description}</Text>
+
+      <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <Ionicons name="close" size={28} color="#fff" />
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <ScrollView style={styles.container}>
-        {stories.length > 0 ? (
-          stories.map((story) => (
-            <View key={story.id} style={styles.storyContainer}>
-              <Image source={{ uri: story.profileImage }} style={styles.profileImage} />
-              <Text style={styles.username}>{story.username}</Text>
-              <Text style={styles.timestamp}>{new Date(story.timestamp?.toDate()).toLocaleString()}</Text>
-              <Text style={styles.location}>
-                {story.city}, {story.country}
-              </Text>
-              <Text style={styles.description}>{story.description}</Text>
-              {story.mediaUrl && (
-                <Image source={{ uri: story.mediaUrl }} style={styles.media} />
-              )}
-            </View>
-          ))
-        ) : (
-          <Text style={styles.noStoriesText}>Bu kullanıcıya ait hikaye bulunamadı.</Text>
-        )}
-      </ScrollView>
-      <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-        <Text style={styles.closeButtonText}>Kapat</Text>
-      </TouchableOpacity>
+      <FlatList
+        data={stories}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item) => item.id}
+        renderItem={renderStoryItem}
+      />
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  storyContainer: { marginBottom: 20, borderBottomWidth: 1, borderColor: '#ddd', paddingBottom: 10 },
-  profileImage: { width: 50, height: 50, borderRadius: 25, marginBottom: 10 },
-  username: { fontWeight: 'bold', fontSize: 16 },
-  timestamp: { color: '#888', marginBottom: 5 },
-  location: { fontSize: 14, marginBottom: 5 },
-  description: { fontSize: 16, marginBottom: 10 },
-  media: { width: '100%', height: 200, borderRadius: 10 },
-  noStoriesText: { textAlign: 'center', marginTop: 20, fontSize: 16, color: '#888' },
-  closeButton: { alignItems: 'center', padding: 10, backgroundColor: '#4CAF50', borderRadius: 5 },
-  closeButtonText: { color: '#fff', fontWeight: 'bold' },
+  storyContainer: {
+    width: screenWidth,
+    height: screenHeight,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    position: 'absolute',
+    top: 50,
+    left: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10,
+  },
+  textContainer: {
+    justifyContent: 'center',
+  },
+  username: {
+    fontSize: 18,
+    color: '#fff',
+    fontFamily: 'ms-bold',
+  },
+  timestamp: {
+    fontSize: 14,
+    color: '#ccc',
+    fontFamily: 'ms-light',
+  },
+  media: {
+    width: screenWidth - 40,
+    height: screenHeight * 0.6,
+    borderRadius: 10,
+  },
+  location: {
+    fontSize: 16,
+    color: '#fff',
+    fontFamily: 'ms-regular',
+    marginVertical: 10,
+  },
+  description: {
+    fontSize: 14,
+    color: '#fff',
+    fontFamily: 'ms-regular',
+    textAlign: 'center',
+    marginHorizontal: 20,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+  },
 });
 
 export default StoryModal;

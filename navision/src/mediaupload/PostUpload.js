@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Alert, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getFirestore, collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
@@ -27,7 +27,7 @@ const PostUpload = ({ navigation }) => {
   const [country, setCountry] = useState('');
   const [userInfo, setUserInfo] = useState({});
   const [region, setRegion] = useState(null);
-
+  const videoRef = useRef(null);
   const auth = getAuth();
   const firestore = getFirestore();
   const storage = getStorage();
@@ -121,63 +121,68 @@ const PostUpload = ({ navigation }) => {
   };
 
   const handleUploadPost = async () => {
-     if (mediaUrls.length === 0 || !location) {
-       Alert.alert('Error', 'Please select media and location.');
-       return;
-     }
-   
-     try {
-       const uploadedMediaUrls = await Promise.all(
-         mediaUrls.map(async (media) => {
-           const response = await fetch(media.uri);
-           const blob = await response.blob();
-   
-           const extension = media.type === 'video' ? 'mp4' : 'jpg';
-           const uniqueFileName = `posts/${auth.currentUser.uid}_${Date.now()}.${extension}`;
-           const mediaRef = storageRef(storage, uniqueFileName);
-   
-           await uploadBytes(mediaRef, blob);
-           const downloadUrl = await getDownloadURL(mediaRef);
-   
-           return { uri: downloadUrl, type: media.type };
-         })
-       );
-   
-       const currentUser = auth.currentUser;
-   
-       // Medya tipi belirleme
-       const mediaType = uploadedMediaUrls.length > 1
-         ? 'carousel'
-         : uploadedMediaUrls[0].type;
-   
-       const postData = {
-         userId: currentUser.uid,
-         username: userInfo.username || 'Anonymous',
-         name: userInfo.name || 'First Name',
-         surname: userInfo.surname || 'Last Name',
-         profileImage: userInfo.profileImage || 'https://via.placeholder.com/150',
-         mediaUrls: uploadedMediaUrls,
-         description,
-         location: { city, country },
-         mediaType: mediaType, // Medya tipini ekledik
-         timestamp: serverTimestamp(),
-         likes: 0,
-         comments: 0,
-         shares: 0,
-         saves: 0,
-       };
-   
-       console.log('Post Data:', postData);
-   
-       await addDoc(collection(firestore, 'posts'), postData);
-   
-       Alert.alert('Success', 'Post uploaded!');
-       resetForm();
-       navigation.navigate('Home', { location });
-     } catch (error) {
-       Alert.alert('Error', error.message);
-     }
-   };
+    if (mediaUrls.length === 0 || !location) {
+      Alert.alert('Error', 'Please select media and location.');
+      return;
+    }
+  
+    try {
+      const uploadedMediaUrls = await Promise.all(
+        mediaUrls.map(async (media) => {
+          try {
+            const response = await fetch(media.uri);
+            const blob = await response.blob();
+  
+            const extension = media.type === 'video' ? 'mp4' : 'jpg';
+            const uniqueFileName = `posts/${auth.currentUser.uid}_${Date.now()}.${extension}`;
+            const mediaRef = storageRef(storage, uniqueFileName);
+  
+            await uploadBytes(mediaRef, blob);
+            const downloadUrl = await getDownloadURL(mediaRef);
+  
+            return { uri: downloadUrl, type: media.type };
+          } catch (error) {
+            console.error('Error uploading media:', error);
+            throw new Error('Media upload failed');
+          }
+        })
+      );
+  
+      const currentUser = auth.currentUser;
+  
+      // Medya tipi belirleme
+      const mediaType = uploadedMediaUrls.length > 1 ? 'carousel' : uploadedMediaUrls[0].type;
+  
+      const postData = {
+        userId: currentUser.uid,
+        username: userInfo.username || 'Anonymous',
+        name: userInfo.name || 'First Name',
+        surname: userInfo.surname || 'Last Name',
+        profileImage: userInfo.profileImage || 'https://via.placeholder.com/150',
+        mediaUrls: uploadedMediaUrls,
+        description,
+        location: { city, country },
+        mediaType: mediaType, // Medya tipini ekledik
+        timestamp: serverTimestamp(),
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        saves: 0,
+      };
+  
+      console.log('Post Data:', postData);
+  
+      await addDoc(collection(firestore, 'posts'), postData);
+  
+      Alert.alert('Success', 'Post uploaded!');
+      resetForm();
+      navigation.navigate('Home', { location });
+    } catch (error) {
+      console.error('Error uploading post:', error);
+      Alert.alert('Error', 'Failed to upload post. Please try again.');
+    }
+  };
+  
    
 
   const renderMediaPreview = (media, index) => {
@@ -262,6 +267,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     alignItems: 'center',
+    position:'absolute',
+    marginTop:600,
+    alignSelf:'center'
+
   },
   buttonText: {
     color: '#fff',

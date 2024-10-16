@@ -1,237 +1,175 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, addDoc, getDoc, doc, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import MapView, { Marker } from 'react-native-maps';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../firebase';
 import * as Location from 'expo-location';
-import * as ImageManipulator from 'expo-image-manipulator';
 
-const pickImage = async () => {
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    aspect: [16, 9],
-    quality: 0.5,
-  });
-
-  if (!result.canceled) {
-    const manipulatedImage = await ImageManipulator.manipulateAsync(
-      result.assets[0].uri,
-      [{ resize: { width: 800 } }], // Resmi 800 px genişliğine ayarlar
-      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // Sıkıştırma ve format
-    );
-    setMediaUri(manipulatedImage.uri);
-  }
-};
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const StoryUpload = ({ navigation }) => {
   const [description, setDescription] = useState('');
   const [mediaUri, setMediaUri] = useState(null);
   const [location, setLocation] = useState(null);
-  const [userInfo, setUserInfo] = useState({ username: '', name: '', surname: '', profileImage: '' });
-  const [city, setCity] = useState('');
-  const [country, setCountry] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  const fetchUserInfo = async (currentUserId) => {
-    const userDoc = await getDoc(doc(db, 'userInfo', currentUserId));
-    if (userDoc.exists()) {
-      setUserInfo(userDoc.data());
-    } else {
-      console.log('No such user!');
-    }
-  };
+  const [loading, setLoading] = useState(false);
 
   const currentUserId = auth.currentUser?.uid;
 
   useEffect(() => {
     const fetchCurrentLocation = async () => {
-      setLoading(true);
-      let { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
-        const location = await Location.getCurrentPositionAsync({});
+        const { coords } = await Location.getCurrentPositionAsync({});
         setLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
         });
-
-        const [place] = await Location.reverseGeocodeAsync(location.coords);
-        if (place) {
-          setCity(place.city || place.name);
-          setCountry(place.country);
-        }
       } else {
-        Alert.alert('Konum izni gerekli', 'Uygulamanın konumunu kullanabilmesi için izin vermeniz gerekiyor.');
+        Alert.alert('Konum izni gerekli', 'Konum iznine izin vermeniz gerekiyor.');
       }
-      setLoading(false);
     };
 
-    if (currentUserId) {
-      fetchUserInfo(currentUserId);
-      fetchCurrentLocation();
-    }
-  }, [currentUserId]);
+    fetchCurrentLocation();
+  }, []);
 
   const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (permissionResult.granted === false) {
-      alert('Permission to access gallery is required!');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.5,
-    });
-
-    if (!result.canceled) {
-      setMediaUri(result.assets[0].uri);
-    }
-  };
-
-  const updateStoriesWithNewProfileImage = async (newProfileImage) => {
     try {
-      const storiesRef = collection(db, 'stories');
-      const storiesSnapshot = await getDocs(storiesRef);
-
-      const batch = writeBatch(db); // Firestore batched write işlemi
-
-      storiesSnapshot.forEach((doc) => {
-        const storyData = doc.data();
-        if (storyData.userId === currentUserId) {
-          // Eğer hikaye bu kullanıcıya aitse, profil resmini güncelle
-          batch.update(doc.ref, { profileImage: newProfileImage });
-        }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
       });
-
-      await batch.commit(); // Tüm güncellemeleri tek seferde uygula
-      console.log('Hikayeler güncellendi.');
+      if (!result.canceled) {
+        setMediaUri(result.assets[0].uri);
+      }
     } catch (error) {
-      console.error('Hikaye güncellemeleri sırasında hata oluştu: ', error);
+      console.error('Medya seçme hatası:', error);
+      Alert.alert('Hata', 'Medya seçilemedi.');
     }
   };
 
   const handleShare = async () => {
-    try {
-      let mediaUrl = null;
-      if (mediaUri) {
-        const mediaRef = ref(storage, `stories/${currentUserId}/${Date.now()}.jpg`);
-        const img = await fetch(mediaUri);
-        const bytes = await img.blob();
-        await uploadBytes(mediaRef, bytes);
-        mediaUrl = await getDownloadURL(mediaRef);
-      }
+    if (!mediaUri) {
+      Alert.alert('Uyarı', 'Önce bir medya seçin.');
+      return;
+    }
 
+    if (!location) {
+      Alert.alert('Uyarı', 'Lütfen konum bilgisi ekleyin.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Medyayı Firebase Storage'a yükle
+      const mediaRef = ref(storage, `stories/${currentUserId}/${Date.now()}.jpg`);
+      const img = await fetch(mediaUri);
+      const bytes = await img.blob();
+      await uploadBytes(mediaRef, bytes);
+      const mediaUrl = await getDownloadURL(mediaRef);
+
+      // Kullanıcı bilgilerini Firestore'dan al
+      const userDoc = await getDoc(doc(db, 'userInfo', currentUserId));
+      if (!userDoc.exists()) {
+        throw new Error('Kullanıcı bilgisi bulunamadı.');
+      }
+      const userData = userDoc.data();
+
+      // Story verilerini hazırlama
       const storyData = {
         userId: currentUserId,
-        username: userInfo.username || '',
-        surname: userInfo.surname || '',
-        name: userInfo.name || '',
-        profileImage: userInfo.profileImage || '',
-        description: description || '',
+        username: userData.username || 'Anonim',
+        profileImage: userData.profileImage || 'https://via.placeholder.com/150',
         mediaUrl,
-        location: location || {
-          latitude: null,
-          longitude: null,
-        },
-        city: city || '',
-        country: country || '',
+        description,
         timestamp: new Date(),
+        location: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          city: userData.city || '',
+          country: userData.country || '',
+        },
       };
 
       console.log('Story Data:', storyData);
 
-      if (!storyData.userId) {
-        throw new Error('userId is undefined.');
-      }
-
-      // Story ekle
+      // Firestore'a kaydet
       await addDoc(collection(db, 'stories'), storyData);
 
-      // Profil resmi güncellendiyse hikayeleri güncelle
-      if (userInfo.profileImage) {
-        await updateStoriesWithNewProfileImage(userInfo.profileImage);
-      }
-
-      Alert.alert(
-        'Başarılı!',
-        'Story başarıyla kaydedildi.',
-        [{ text: 'Tamam', onPress: () => navigation.goBack() }]
-      );
+      Alert.alert('Başarılı', 'Story başarıyla yüklendi.');
+      navigation.goBack();
     } catch (error) {
-      console.error('Error sharing story:', error);
-      Alert.alert('Hata', 'Story paylaşımında bir sorun oluştu. Lütfen tekrar deneyin.');
+      console.error('Story paylaşma hatası:', error);
+      Alert.alert('Hata', 'Story paylaşılırken hata oluştu.');
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleMapPress = (event) => {
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    setLocation({ latitude, longitude });
-    Location.reverseGeocodeAsync({ latitude, longitude }).then((places) => {
-      const place = places[0];
-      if (place) {
-        setCity(place.city || place.name);
-        setCountry(place.country);
-      }
-    });
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>Story Paylaş</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={30} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerText}>Yeni Hikaye</Text>
       </View>
 
-      <View style={styles.mediaPreview}>
+      <TouchableOpacity style={styles.mediaPreview} onPress={pickImage}>
         {mediaUri ? (
           <Image source={{ uri: mediaUri }} style={styles.media} resizeMode="cover" />
         ) : (
-          <Text>No media selected</Text>
+          <Ionicons name="image-outline" size={100} color="#ccc" />
         )}
-      </View>
+      </TouchableOpacity>
 
       <TextInput
         style={styles.input}
-        placeholder="Açıklama ekle..."
+        placeholder="Bir şeyler yaz..."
         value={description}
         onChangeText={setDescription}
       />
 
       <MapView
         style={styles.map}
-        onPress={handleMapPress}
-        region={location ? {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        } : {
-          latitude: 37.78825, 
-          longitude: -122.4324,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
+        region={
+          location
+            ? {
+                latitude: location.latitude,
+                longitude: location.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }
+            : {
+                latitude: 37.78825,
+                longitude: -122.4324,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }
+        }
       >
-        {location && (
-          <Marker coordinate={{ latitude: location.latitude, longitude: location.longitude }} />
-        )}
+        {location && <Marker coordinate={location} />}
       </MapView>
 
-      <View style={styles.iconRow}>
-        <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
-          <Ionicons name="image" size={24} color="black" />
-          <Text style={styles.iconText}>Medya</Text>
-        </TouchableOpacity>
-      </View>
-
       <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-        <Text style={styles.shareButtonText}>Paylaş</Text>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.shareButtonText}>Paylaş</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -244,57 +182,52 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   header: {
-    marginBottom: 20,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 30,
   },
   headerText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    marginLeft: 10,
   },
   mediaPreview: {
-    height: 200,
+    width: screenWidth - 40,
+    height: screenHeight * 0.4,
     backgroundColor: '#eaeaea',
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 10,
     marginBottom: 20,
   },
   media: {
     width: '100%',
     height: '100%',
+    borderRadius: 10,
   },
   input: {
-    height: 40,
-    borderColor: 'gray',
+    height: 50,
+    borderColor: '#ddd',
     borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 10,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 20,
   },
   map: {
     width: '100%',
-    height: 200,
+    height: 150,
     marginBottom: 20,
-  },
-  iconRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  iconButton: {
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  iconText: {
-    marginTop: 5,
+    borderRadius: 10,
   },
   shareButton: {
     backgroundColor: '#4CAF50',
-    padding: 10,
+    padding: 15,
     alignItems: 'center',
-    borderRadius: 5,
+    borderRadius: 10,
   },
   shareButtonText: {
-    color: 'white',
+    color: '#fff',
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });
