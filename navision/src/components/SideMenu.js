@@ -17,12 +17,8 @@ const SideMenu = ({ visible, onClose }) => {
       }
     });
 
-    // Dinleyici işlevini kontrol ederek kaldırıyoruz.
-    return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe(); // Dinleyiciyi doğru şekilde kaldır.
-      }
-    };
+    // Dinleyiciyi temizlemek için geri döndürüyoruz.
+    return unsubscribe; // Direkt olarak unsubscribe'ı döndürüyoruz, bu bir işlevdir ve bileşen unmount olduğunda çağrılır.
   }, [auth, navigation]);
 
   const handleSignOut = async () => {

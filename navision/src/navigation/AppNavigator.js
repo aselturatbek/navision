@@ -96,17 +96,41 @@ const HomeTabs = ({ route, navigation }) => {
     setMenuVisible(!menuVisible);
   };
 
+  // fetchCurrentUser fonksiyonunu doğrudan useEffect içinde çağır
   useEffect(() => {
-    const unsubscribe = fetchCurrentUser(setCurrentUser); // Burada setCurrentUser'ı argüman olarak geçin
-  
-    // Cleanup function to unsubscribe
-    return () => {
-      if (unsubscribe) {
-        unsubscribe(); // Dinleyiciyi kaldır
-      }
-    };
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      const db = getFirestore();
+      const userRef = doc(db, 'userInfo', user.uid);
+
+      // Firestore'daki verileri dinlemek için onSnapshot kullanın
+      const unsubscribe = onSnapshot(userRef, (doc) => {
+        if (doc.exists()) {
+          const userData = doc.data();
+          setCurrentUser({
+            uid: user.uid,
+            email: user.email,
+            profileImage: userData.profileImage || 'https://via.placeholder.com/150',
+            displayName: userData.username || user.email.split('@')[0],
+          });
+        } else {
+          setCurrentUser(null); // Kullanıcı verisi yoksa null döndür
+        }
+      }, (error) => {
+        console.error("Error fetching user data:", error);
+        setCurrentUser(null); // Hata durumunda da null döndür
+      });
+
+      // Dinleyiciyi bileşen unmount olduğunda kaldır
+      return () => {
+        if (unsubscribe) {
+          unsubscribe(); // Dinleyiciyi kaldır
+        }
+      };
+    }
   }, []);
-  
 
   return (
     <View style={{ flex: 1 }}>
@@ -114,8 +138,10 @@ const HomeTabs = ({ route, navigation }) => {
       {menuVisible && (
         <SideMenu onClose={() => setMenuVisible(false)} />
       )}
-      <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0, padding: 10, paddingHorizontal: 20 },
-        tabBarActiveTintColor: 'black', 
+      <Tab.Navigator screenOptions={{
+        headerShown: false, 
+        tabBarStyle: { backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0, padding: 10, paddingHorizontal: 20 },
+        tabBarActiveTintColor: 'black',
         tabBarInactiveTintColor: 'gray' 
       }}>
         <Tab.Screen 
