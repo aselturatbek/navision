@@ -21,6 +21,7 @@ import { Video } from 'expo-av';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+
 const timeAgo = (timestamp) => {
   const now = new Date();
   const postDate = timestamp.toDate();
@@ -42,26 +43,48 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const firestore = getFirestore();
-  const scrollX = useRef(new Animated.Value(0)).current; 
+  const storage = getStorage();
+  const scrollX = useRef(new Animated.Value(0)).current;
 
-  const fetchPosts = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(firestore, 'posts'));
-      const fetchedPosts = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      
-      // Postları timestamp'e göre sıralama (en son eklenen ilk sırada olacak)
+  // Postları dinlemek ve güncellemek için onSnapshot kullanıyoruz.
+  const fetchPosts = () => {
+    const unsubscribe = onSnapshot(collection(firestore, 'posts'), async (querySnapshot) => {
+      const fetchedPosts = await Promise.all(
+        querySnapshot.docs.map(async (doc) => {
+          const data = doc.data();
+
+          // Profil resmini ve medya dosyalarını Firebase Storage'dan çekme
+          try {
+            if (data.profileImage) {
+              const profileImageUrl = await getDownloadURL(ref(storage, data.profileImage));
+              data.profileImage = profileImageUrl;
+            }
+
+            if (data.mediaUrls && data.mediaUrls.length > 0) {
+              const mediaUrls = await Promise.all(
+                data.mediaUrls.map(async (url) => {
+                  const mediaUrl = await getDownloadURL(ref(storage, url));
+                  return { uri: mediaUrl, type: url.type };
+                })
+              );
+              data.mediaUrls = mediaUrls;
+            }
+          } catch (error) {
+            console.error('Error fetching media:', error);
+          }
+
+          return { id: doc.id, ...data };
+        })
+      );
+
       const sortedPosts = fetchedPosts.sort((a, b) => b.timestamp.toDate() - a.timestamp.toDate());
-      
       setPosts(sortedPosts);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-    } finally {
-      setLoading(false);
-    }
+      setLoading(false);  // Loading bittiğinde false olarak ayarlanır
+    });
+
+    return () => unsubscribe(); // Bileşen kaldırıldığında dinleyiciyi kaldır.
   };
+
   useEffect(() => {
     fetchPosts();
   }, []);

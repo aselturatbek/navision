@@ -58,14 +58,16 @@ const RegisterScreen = () => {
             {renderStepIndicator()}
             <TextInput
               style={styles.input}
-              placeholder="Ad & Soyad"
+              placeholder="Ad"
               value={name}
               onChangeText={setName}
             />
             <PhoneInput
               defaultCode="TR"
               layout="first"
-              onChangeFormattedText={setPhoneNumber}
+              onChangeFormattedText={text => setPhoneNumber(text)}
+              withShadow
+              autoFocus
               containerStyle={styles.phoneInputContainer}
               textContainerStyle={styles.textContainer}
             />

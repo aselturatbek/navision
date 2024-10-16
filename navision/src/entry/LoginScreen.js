@@ -47,7 +47,12 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>navision’a Hoş Geldin.</Text>
+       <Text style={styles.title}>
+              navision’a {"\n"}
+              <Text style={styles.title2}>
+               Kayıt Ol.
+              </Text>
+       </Text>
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -64,7 +69,7 @@ const LoginScreen = ({ navigation }) => {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Güçlü bir şifre giriniz"
+          placeholder="şifre giriniz"
           placeholderTextColor="#999"
           secureTextEntry
           value={password}
@@ -93,64 +98,83 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
     backgroundColor: '#fff',
   },
   title: {
-    fontSize: 28,
+    fontSize: 35,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 50,
+    marginTop:20,
+    fontFamily:'ms-bold'
+  },
+  title2: {
+    fontSize: 33,
+    textAlign: 'center',
+    marginBottom: 20,
+    fontFamily:'ms-light'
   },
   inputContainer: {
     marginBottom: 20,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
+    backgroundColor: 'transparent',
+    borderRadius: 15,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
     height: 50,
     borderWidth: 1,
     borderColor: '#E0E0E0',
+    fontFamily:'ms-regular'
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     color: '#333',
+    fontFamily:'ms-regular'
   },
   button: {
     backgroundColor: '#007BFF',
-    borderRadius: 8,
+    borderRadius: 15,
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
   },
+  labelText:{
+    fontFamily:'ms-bold',
+    marginBottom:8
+  },
   buttonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+    fontFamily: 'ms-bold'
   },
   forgotText: {
     textAlign: 'center',
     marginTop: 10,
     fontSize: 14,
     color: '#555',
+    fontFamily:'ms-regular'
   },
   orText: {
     textAlign: 'center',
     marginVertical: 10,
     fontSize: 14,
     color: '#777',
+    fontFamily:'ms-light'
   },
   registerText: {
     textAlign: 'center',
     fontSize: 14,
     color: '#555',
+    fontFamily:'ms-regular'
   },
   linkText: {
     color: '#007BFF',
     fontWeight: 'bold',
+    fontFamily:'ms-bold'
   },
 });
 

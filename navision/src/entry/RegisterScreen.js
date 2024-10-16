@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Alert, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, TextInput, Alert, StyleSheet, Text, ScrollView, TouchableOpacity } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
 import { auth } from '../firebase'; 
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { getFirestore, doc, setDoc , getDocs, collection} from 'firebase/firestore'; 
 import { getDatabase, ref, set } from 'firebase/database'; 
 import { useNavigation } from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
-import Icon from 'react-native-vector-icons/Ionicons';
+import Icon from 'react-native-vector-icons/Ionicons'; 
 
 const RegisterScreen = () => {
+  const [currentStep, setCurrentStep] = useState(1);
   const navigation = useNavigation(); 
   const [username, setUsername] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -19,13 +18,10 @@ const RegisterScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
-  const [bio, setBio] = useState('');
-  const [profileImage, setProfileImage] = useState(null);
-  const [dateOfBirth, setDateOfBirth] = useState(new Date());
-  const [gender, setGender] = useState('male');
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const firestore = getFirestore(); // Firestore instance
-  const database = getDatabase(); // Realtime Database instance
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState('');
+  const firestore = getFirestore(); 
+  const database = getDatabase(); 
 
   const checkUsernameExists = async (username) => {
     const snapshot = await getDocs(collection(firestore, 'userInfo'));
@@ -40,6 +36,11 @@ const RegisterScreen = () => {
   const isPasswordValid = (password) => {
     const re = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
     return re.test(password);
+  };
+
+  const handleNextStep = () => {
+    if (currentStep < 3) setCurrentStep(currentStep + 1);
+    else registerUser(); 
   };
 
   const registerUser = async () => {
@@ -73,11 +74,10 @@ const RegisterScreen = () => {
           email: email,
           name: name,
           surname: surname,
-          dateOfBirth: dateOfBirth.toISOString().split('T')[0],
+          dateOfBirth: dateOfBirth,
           gender: gender,
-          bio:'',
+          biography:'',
           profileImage:''
-
         });
 
         // Realtime Database'de kullanıcı bilgilerini kaydet
@@ -87,15 +87,20 @@ const RegisterScreen = () => {
           email: email,
           name: name,
           surname: surname,
-          dateOfBirth: dateOfBirth.toISOString().split('T')[0],
+          dateOfBirth: dateOfBirth,
           gender: gender,
-          bio: '',
+          biography:'',
           profileImage:''
         });
 
-        Alert.alert("Başarılı", "Kayıt başarılı! E-posta doğrulama linki gönderildi.", [
-          { text: "Tamam", onPress: () => navigation.navigate('Login') }
-        ]);
+        // Başarılı mesajı göster ve sonra 3. adımı göster
+        Alert.alert("Başarılı", "Kayıt başarılı! E-posta doğrulama linki gönderildi.");
+        setCurrentStep(3);
+
+        // 2 saniye sonra kullanıcıyı login ekranına yönlendir
+        setTimeout(() => {
+          navigation.navigate('Login');
+        }, 2000); // 2 saniye bekleme süresi
       } else {
         Alert.alert("Hata", "Şifreler uyuşmuyor.");
       }
@@ -104,208 +109,277 @@ const RegisterScreen = () => {
     }
   };
 
-  const onChangeDate = (event, selectedDate) => {
-    const currentDate = selectedDate || dateOfBirth;
-    setShowDatePicker(false);
-    setDateOfBirth(currentDate);
-  };
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Kayıt Ol</Text>
-      
-      <View style={styles.inputContainer}>
-        <Icon name="person-outline" size={20} color="#555" />
-        <TextInput
-          style={styles.input}
-          placeholder="Kullanıcı Adı"
-          value={username}
-          onChangeText={setUsername}
-        />
-      </View>
-      
-      <View style={styles.inputContainer}>
-        <Icon name="call-outline" size={20} color="#555" />
-        <PhoneInput
-          defaultCode="TR"
-          layout="first"
-          onChangeFormattedText={text => setPhoneNumber(text)}
-          withShadow
-          autoFocus
-          containerStyle={styles.phoneInputContainer}
-          textContainerStyle={styles.textContainer}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Icon name="person" size={20} color="#555" />
-        <TextInput
-          style={styles.input}
-          placeholder="Ad"
-          value={name}
-          onChangeText={setName}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Icon name="person" size={20} color="#555" />
-        <TextInput
-          style={styles.input}
-          placeholder="Soyad"
-          value={surname}
-          onChangeText={setSurname}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Icon name="mail-outline" size={20} color="#555" />
-        <TextInput
-          style={styles.input}
-          placeholder="E-posta"
-          value={email}
-          onChangeText={setEmail}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Icon name="lock-closed-outline" size={20} color="#555" />
-        <TextInput
-          style={styles.input}
-          placeholder="Şifre"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Icon name="lock-closed-outline" size={20} color="#555" />
-        <TextInput
-          style={styles.input}
-          placeholder="Şifreyi Onayla"
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-        />
-      </View>
-      
-      <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker(true)}>
-        <Icon name="calendar-outline" size={20} color="#fff" />
-        <Text style={styles.datePickerButtonText}>Doğum Tarihini Seç</Text>
-      </TouchableOpacity>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={dateOfBirth}
-          mode="date"
-          display="default"
-          onChange={onChangeDate}
-        />
-      )}
-
-      {dateOfBirth && (
-        <Text style={styles.dateDisplay}>
-          Seçilen Doğum Tarihi: {dateOfBirth.toLocaleDateString()}
-        </Text>
-      )}
-      
-      <Text style={styles.genderLabel}>Cinsiyet</Text>
-      <Picker
-        selectedValue={gender}
-        style={styles.picker}
-        onValueChange={(itemValue) => setGender(itemValue)}
-      >
-        <Picker.Item label="Erkek" value="male" />
-        <Picker.Item label="Kadın" value="female" />
-        <Picker.Item label="Diğer" value="other" />
-      </Picker>
-
-      <TouchableOpacity style={styles.registerButton} onPress={registerUser}>
-        <Text style={styles.registerButtonText}>Kayıt Ol</Text>
-      </TouchableOpacity>
+  const renderStepIndicator = () => (
+    <View style={styles.stepIndicator}>
+      {[1, 2, 3].map((step) => (
+        <View
+          key={step}
+          style={[
+            styles.circle,
+            { 
+              backgroundColor: currentStep >= step ? '#007BFF' : '#ddd',
+              width: currentStep === step ? null : 35,
+              height: currentStep === step ? null : 30,
+              paddingHorizontal: currentStep === step ? 10 : 0,
+              justifyContent: currentStep === step ? 'center' : 'center',
+            }
+          ]}
+        >
+          {currentStep > step || (currentStep === 3 && step === 3) ? (
+            <Icon name="checkmark" size={20} color="#fff" />
+          ) : currentStep === step ? (
+            <Text style={styles.stepTextActive}>
+              {step === 1 ? 'Kişisel Bilgiler' : step === 2 ? 'Güvenlik Bilgileri' : ''}
+            </Text>
+          ) : (
+            <Text style={styles.stepText}>{step}</Text>
+          )}
+        </View>
+      ))}
     </View>
   );
+
+  const renderContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <View>
+            <Text style={styles.title}>
+              navision’a {"\n"}
+              <Text style={styles.title2}>
+               Kayıt Ol.
+              </Text>
+            </Text>
+            {renderStepIndicator()}
+            <Text style={styles.labelText}>Ad & Soyad</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+            />
+            <Text style={styles.labelText}>Telefon Numarası</Text>
+            <TextInput
+              style={styles.input}
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+            />
+          <View style={styles.rowContainer}>
+            <View style={{ flex: 1, marginRight: 10 }}>
+              <Text style={styles.labelText}>Doğum Günü</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="gg.aa.yyyy"
+                value={dateOfBirth}
+                onChangeText={setDateOfBirth}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.labelTextGender}>Cinsiyet</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Erkek, Kadın, Diğer"
+                value={gender}
+                onChangeText={setGender}
+              />
+            </View>
+          </View>
+
+            <TouchableOpacity style={styles.button} onPress={handleNextStep}>
+              <Text style={styles.buttonText}>Devam et</Text>
+            </TouchableOpacity>
+
+            <View style={styles.loginContainer}>
+              <Text style={styles.alreadyHaveAccount}>Hesabın zaten var mı? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.loginText}>Giriş Yap</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      case 2:
+        return (
+          <View>
+            <Text style={styles.title}>
+              Çok az {"\n"}
+              <Text style={styles.title2}>
+               Kaldı.
+              </Text>
+            </Text>
+            {renderStepIndicator()}
+            <Text style={styles.labelText}>Kullanıcı Adı</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="username"
+              value={username}
+              onChangeText={setUsername}
+            />
+            <Text style={styles.labelText}>E-mail</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <Text style={styles.labelText}>Şifre</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Şifre"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+            <Text style={styles.labelText}>Şifre Onayla</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Şifreni Onayla"
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+            <TouchableOpacity style={styles.button} onPress={registerUser}>
+              <Text style={styles.buttonText}>Kayıt Ol</Text>
+            </TouchableOpacity>
+
+            <View style={styles.loginContainer}>
+              <Text style={styles.alreadyHaveAccount}>Hesabın zaten var mı? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.loginText}>Giriş Yap</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      case 3:
+        return (
+          <View style={styles.center}>
+            <Text style={styles.title}>
+              navision’a {"\n"}
+              <Text style={styles.title2}>
+               Hoşgeldin.
+              </Text>
+            </Text>
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
+  
+  return <ScrollView contentContainerStyle={styles.container}>{renderContent()}</ScrollView>;
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
+    flexGrow: 1,
+    padding: 30,
+    backgroundColor: '#fff',
   },
   title: {
-    fontSize: 32,
+    fontSize:32,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 30,
-    color: '#333',
+    marginBottom: 20,
+    marginTop:50,
+    fontFamily:'ms-bold'
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 15,
-    backgroundColor: '#fff',
-    paddingHorizontal: 10,
+  title2: {
+    fontSize: 30,
+    textAlign: 'center',
+    marginBottom: 20,
+    fontFamily:'ms-light'
+  },
+  labelText:{
+    fontFamily:'ms-bold',
+    marginBottom:8
+  },
+  labelTextGender:{
+    fontFamily:'ms-bold',
+    marginBottom:8,
+    marginLeft:1,
   },
   input: {
-    height: 50,
-    flex: 1,
-    fontSize: 16,
-    paddingLeft: 10,
-  },
-  phoneInputContainer: {
-    flex: 1,
-    height: 50,
-  },
-  textContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    height: 50,
-    paddingLeft: 10,
-  },
-  datePickerButton: {
-    backgroundColor: '#007BFF',
-    borderRadius: 8,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  datePickerButtonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  dateDisplay: {
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  genderLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  picker: {
-    height: 50,
-    width: '100%',
-    borderColor: '#ccc',
+    height: 40,
+    borderColor: '#ddd',
     borderWidth: 1,
     borderRadius: 8,
+    paddingHorizontal: 10,
     marginBottom: 15,
-    backgroundColor: '#fff',
+    fontFamily:'ms-regular'
   },
-  registerButton: {
-    backgroundColor: '#28A745',
+  phoneInputContainer: {
+    height: 40,  
+    borderColor: '#ddd',
+    borderWidth: 1,  
     borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 15,
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  rowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  button: {
+    backgroundColor: '#007BFF',
+    borderRadius: 15,
     paddingVertical: 15,
     alignItems: 'center',
+    marginTop: 5,
+    height:50
   },
-  registerButtonText: {
+  buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily:'ms-bold'
+  },
+  stepText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontFamily:'ms-bold'
+  },
+  stepTextActive: {
+    fontSize: 14,
+    color: '#fff',
+    textAlign: 'center',
+    fontFamily:'ms-regular'
+  },
+  circle: {
+    height: 50,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 0,
+  },
+  stepIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 40,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  alreadyHaveAccount: {
+    fontSize: 14,
+    color: '#000',
+    fontFamily: 'ms-regular',
+  },
+  loginText: {
+    fontSize: 14,
+    color: '#007BFF',
+    fontFamily: 'ms-bold',
   },
 });
 

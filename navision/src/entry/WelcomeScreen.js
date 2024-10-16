@@ -12,19 +12,10 @@ const WelcomeScreen = ({ navigation }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.imageContainer}>
-        {images.map((image, index) => (
-          <Image
-            key={index}
-            source={{ uri: image }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-        ))}
-      </View>
+      
 
       <Text style={styles.title}>Hayalindeki tatili</Text>
-      <Text style={styles.subtitle}>tek tıkla planla, gez & paylaş.</Text>
+      <Text style={styles.subtitle}>tek tıkla planla,{"\n"} gez & paylaş.</Text>
 
       <TouchableOpacity
         style={styles.button}
@@ -57,26 +48,30 @@ const styles = StyleSheet.create({
     margin: 5,
   },
   title: {
-    fontSize: 24,
-    fontFamily: 'ms-bold',
+    fontSize: 33,
+    fontFamily: 'ms-light',
     textAlign: 'center',
     marginBottom: 5,
   },
   subtitle: {
-    fontSize: 18,
-    fontFamily: 'ms-regular',
+    fontSize: 30,
+    fontFamily: 'ms-bold',
     textAlign: 'center',
     marginBottom: 20,
   },
   button: {
     backgroundColor: '#007BFF',
-    borderRadius: 8,
-    paddingVertical: 15,
+    borderRadius: 20,
+    paddingVertical: 10,
     paddingHorizontal: 30,
+    marginTop:20,
+    width:250,
+    height:50,
+    alignItems:'center'
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 20,
     fontFamily: 'ms-bold',
   },
 });
