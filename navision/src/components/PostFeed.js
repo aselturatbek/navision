@@ -51,14 +51,17 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
         id: doc.id,
         ...doc.data(),
       }));
-      setPosts(fetchedPosts);
+      
+      // Postları timestamp'e göre sıralama (en son eklenen ilk sırada olacak)
+      const sortedPosts = fetchedPosts.sort((a, b) => b.timestamp.toDate() - a.timestamp.toDate());
+      
+      setPosts(sortedPosts);
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchPosts();
   }, []);

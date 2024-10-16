@@ -14,9 +14,10 @@ import { Video } from 'expo-av';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+// Zamanı hesaplayan fonksiyon
 const timeAgo = (timestamp) => {
   const now = new Date();
-  const postDate = timestamp.toDate();
+  const postDate = timestamp.toDate(); // Firestore'dan gelen timestamp
   const diffInMs = now - postDate;
   const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
   const diffInHours = Math.floor(diffInMinutes / 60);
@@ -44,6 +45,7 @@ const StoryModal = ({ visible, onClose, stories }) => {
         </View>
       </View>
 
+      {/* Medya tipi kontrolü: Video ya da resim */}
       {item.mediaUrl && item.mediaUrl.endsWith('.mp4') ? (
         <Video
           ref={videoRef}
@@ -63,9 +65,17 @@ const StoryModal = ({ visible, onClose, stories }) => {
         <Image source={{ uri: item.mediaUrl }} style={styles.media} />
       )}
 
-      <Text style={styles.location}>{`${item.city}, ${item.country}`}</Text>
+      {/* Şehir ve ülke bilgisi, boş olabilir diye kontrol ekliyoruz */}
+      <Text style={styles.location}>
+        {item.location?.city && item.location?.country
+          ? `${item.location.city}, ${item.location.country}`
+          : 'Konum bilgisi yok'}
+      </Text>
+
+      {/* Hikaye açıklaması */}
       <Text style={styles.description}>{item.description}</Text>
 
+      {/* Kapatma butonu */}
       <TouchableOpacity onPress={onClose} style={styles.closeButton}>
         <Ionicons name="close" size={28} color="#fff" />
       </TouchableOpacity>

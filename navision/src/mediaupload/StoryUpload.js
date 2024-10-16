@@ -25,17 +25,43 @@ const StoryUpload = ({ navigation }) => {
   const [mediaUri, setMediaUri] = useState(null);
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
 
   const currentUserId = auth.currentUser?.uid;
+
+  // Kullanıcı bilgilerini Firestore'dan çekme
+  const fetchUserInfo = async () => {
+    const docRef = doc(db, 'userInfo', currentUserId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      setUserInfo(docSnap.data());
+    } else {
+      console.log('Kullanıcı bilgisi bulunamadı!');
+    }
+  };
+
+  useEffect(() => {
+    fetchUserInfo(); // Kullanıcı bilgilerini bileşen yüklendiğinde çek
+  }, []);
 
   useEffect(() => {
     const fetchCurrentLocation = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const { coords } = await Location.getCurrentPositionAsync({});
+        // Konum bilgilerini al
+        const reverseGeocode = await Location.reverseGeocodeAsync({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
+        const address = reverseGeocode[0];
+
         setLocation({
           latitude: coords.latitude,
           longitude: coords.longitude,
+          city: address.city || 'Bilinmiyor',
+          country: address.country || 'Bilinmiyor',
         });
       } else {
         Alert.alert('Konum izni gerekli', 'Konum iznine izin vermeniz gerekiyor.');
@@ -49,7 +75,7 @@ const StoryUpload = ({ navigation }) => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 1,
+        quality: 0.7,
       });
       if (!result.canceled) {
         setMediaUri(result.assets[0].uri);
@@ -58,6 +84,24 @@ const StoryUpload = ({ navigation }) => {
       console.error('Medya seçme hatası:', error);
       Alert.alert('Hata', 'Medya seçilemedi.');
     }
+  };
+
+  const handleMapPress = (e) => {
+    const { latitude, longitude } = e.nativeEvent.coordinate;
+    setLocation((prev) => ({
+      ...prev,
+      latitude,
+      longitude,
+    }));
+
+    Location.reverseGeocodeAsync({ latitude, longitude }).then((address) => {
+      const newAddress = address[0];
+      setLocation((prev) => ({
+        ...prev,
+        city: newAddress.city || 'Bilinmiyor',
+        country: newAddress.country || 'Bilinmiyor',
+      }));
+    });
   };
 
   const handleShare = async () => {
@@ -81,26 +125,19 @@ const StoryUpload = ({ navigation }) => {
       await uploadBytes(mediaRef, bytes);
       const mediaUrl = await getDownloadURL(mediaRef);
 
-      // Kullanıcı bilgilerini Firestore'dan al
-      const userDoc = await getDoc(doc(db, 'userInfo', currentUserId));
-      if (!userDoc.exists()) {
-        throw new Error('Kullanıcı bilgisi bulunamadı.');
-      }
-      const userData = userDoc.data();
-
-      // Story verilerini hazırlama
+      // Firestore'dan çekilen kullanıcı bilgilerini kullan
       const storyData = {
         userId: currentUserId,
-        username: userData.username || 'Anonim',
-        profileImage: userData.profileImage || 'https://via.placeholder.com/150',
+        username: userInfo?.username || 'Anonim', // Firestore'dan kullanıcı adı
+        profileImage: userInfo?.profileImage || 'https://via.placeholder.com/150', // Firestore'dan profil resmi
         mediaUrl,
         description,
         timestamp: new Date(),
         location: {
           latitude: location.latitude,
           longitude: location.longitude,
-          city: userData.city || '',
-          country: userData.country || '',
+          city: location.city,
+          country: location.country,
         },
       };
 
@@ -160,6 +197,7 @@ const StoryUpload = ({ navigation }) => {
                 longitudeDelta: 0.01,
               }
         }
+        onPress={handleMapPress} // Haritada tıklanarak yeni konum seçilebiliyor
       >
         {location && <Marker coordinate={location} />}
       </MapView>
@@ -185,6 +223,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 30,
+    marginTop: 30,
+    
   },
   headerText: {
     fontSize: 20,
