@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, TextInput, Button, Alert, StyleSheet, Text, Image, ScrollView, ActivityIndicator } from 'react-native';
+import { View, TextInput, Button, Alert, StyleSheet, Text, Image, ScrollView, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { auth } from '../firebase';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { getDatabase, ref, set } from 'firebase/database';
@@ -121,73 +121,82 @@ const EditProfile = ({ route }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>Profilinizi Düzenleyin</Text>
-      
-      {loading ? ( // Show loading indicator
-        <ActivityIndicator size="large" color="#0000ff" />
-      ) : (
-        <>
-          <TextInput
-            placeholder="Kullanıcı Adı"
-            value={userInfo.username}
-            onChangeText={(text) => setUserInfo({ ...userInfo, username: text })}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Ad"
-            value={userInfo.name}
-            onChangeText={(text) => setUserInfo({ ...userInfo, name: text })}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Soyad"
-            value={userInfo.surname}
-            onChangeText={(text) => setUserInfo({ ...userInfo, surname: text })}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="E-posta"
-            value={userInfo.email}
-            onChangeText={(text) => setUserInfo({ ...userInfo, email: text })}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Telefon Numarası"
-            value={userInfo.phoneNumber}
-            onChangeText={(text) => setUserInfo({ ...userInfo, phoneNumber: text })}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Doğum Tarihi (YYYY-MM-DD)"
-            value={userInfo.birthOfDate}
-            onChangeText={(text) => setUserInfo({ ...userInfo, birthOfDate: text })}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Cinsiyet"
-            value={userInfo.gender}
-            onChangeText={(text) => setUserInfo({ ...userInfo, gender: text })}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Biyografi"
-            value={userInfo.biography}
-            onChangeText={(text) => setUserInfo({ ...userInfo, biography: text })}
-            style={styles.input}
-          />
-          
-          <Button title="Profil Resmi Seç" onPress={selectProfileImage} />
-          {userInfo.profileImage ? (
-            <Image source={{ uri: userInfo.profileImage }} style={styles.profileImage} />
-          ) : (
-            <Text>Profil resmi seçilmedi.</Text>
-          )}
-          
-          <Button title="Profil Güncelle" onPress={updateProfile} />
-        </>
-      )}
-    </ScrollView>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" :0} // iOS'ta padding, Android'de varsayılan
+      keyboardVerticalOffset={30} // Klavyeyi kaldırmak için yeterli bir offset ayarlayın
+    >
+      <ScrollView>
+        <Text style={styles.header}>Profilinizi Düzenleyin</Text>
+        
+        {loading ? ( // Show loading indicator
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : (
+          <>
+            <TouchableOpacity onPress={selectProfileImage}>
+              <Image
+                source={{ uri: userInfo.profileImage || 'https://via.placeholder.com/150' }}
+                style={styles.profileImage}
+              />
+              <Text style={styles.editImageText}>Profil Resmini Düzenle</Text>
+            </TouchableOpacity>
+
+            <TextInput
+              placeholder="Kullanıcı Adı"
+              value={userInfo.username}
+              onChangeText={(text) => setUserInfo({ ...userInfo, username: text })}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Ad"
+              value={userInfo.name}
+              onChangeText={(text) => setUserInfo({ ...userInfo, name: text })}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Soyad"
+              value={userInfo.surname}
+              onChangeText={(text) => setUserInfo({ ...userInfo, surname: text })}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="E-posta"
+              value={userInfo.email}
+              onChangeText={(text) => setUserInfo({ ...userInfo, email: text })}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Telefon Numarası"
+              value={userInfo.phoneNumber}
+              onChangeText={(text) => setUserInfo({ ...userInfo, phoneNumber: text })}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Doğum Tarihi (YYYY-MM-DD)"
+              value={userInfo.birthOfDate}
+              onChangeText={(text) => setUserInfo({ ...userInfo, birthOfDate: text })}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Cinsiyet"
+              value={userInfo.gender}
+              onChangeText={(text) => setUserInfo({ ...userInfo, gender: text })}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Biyografi"
+              value={userInfo.biography}
+              onChangeText={(text) => setUserInfo({ ...userInfo, biography: text })}
+              style={styles.input}
+            />
+
+            <TouchableOpacity style={styles.saveButton} onPress={updateProfile}>
+              <Text style={styles.saveButtonText}>Profili Güncelle</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -195,29 +204,51 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: 'transparent',
+    marginTop: 30,
   },
   header: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#333',
   },
   input: {
     height: 50,
-    borderColor: '#ccc',
+    borderColor: '#ddd',
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 15,
-    paddingHorizontal: 10,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: 15,
+    backgroundColor: '#fff',
   },
   profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginVertical: 10,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     alignSelf: 'center',
+    marginBottom: 10,
+    borderColor: '#ddd',
+    borderWidth: 2,
+  },
+  editImageText: {
+    textAlign: 'center',
+    color: '#007bff',
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  saveButton: {
+    backgroundColor: '#007bff',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: -10,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

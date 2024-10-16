@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { auth } from '../firebase';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -30,25 +30,66 @@ const ProfileScreen = () => {
     setUserInfo(updatedInfo); // Kullanıcı bilgisini güncelle
   };
 
+  const renderGridItem = () => (
+    <View style={styles.gridItem} />
+  );
+
   if (!userInfo) {
     return <Text>Loading...</Text>; // Veriler yüklenirken gösterilecek
   }
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditProfile', { onUpdate: handleUpdate })}>
-        <Icon name="create-outline" size={24} color="#fff" />
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <View style={styles.userInfo}>
+          <Image
+            source={{ uri: userInfo.profileImage || 'https://via.placeholder.com/150' }}
+            style={styles.profileImage}
+          />
+          <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditProfile', { onUpdate: handleUpdate })}>
+            <Icon name="create-outline" size={20} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.username}>{userInfo.name} {userInfo.surname}</Text>
+          <Text style={styles.handle}>@{userInfo.username}</Text>
+          <Text style={styles.biography}>{userInfo.biography}</Text>
+        </View>
 
-      <Image source={{ uri: userInfo.profileImage || 'https://via.placeholder.com/150' }} style={styles.profileImage} />
+        <View style={styles.stats}>
+          <View style={styles.statItem}>
+            <Text style={styles.statCount}>213</Text>
+            <Text style={styles.statLabel}>Paylaşım</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statCount}>241</Text>
+            <Text style={styles.statLabel}>Takipçi</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statCount}>123</Text>
+            <Text style={styles.statLabel}>Takip Edilen</Text>
+          </View>
+        </View>
 
-      <Text style={styles.title}>{userInfo.name} {userInfo.surname}</Text>
-      <Text style={styles.info}>Kullanıcı Adı: {userInfo.username}</Text>
-      <Text style={styles.info}>E-posta: {userInfo.email}</Text>
-      <Text style={styles.info}>Telefon: {userInfo.phoneNumber}</Text>
-      <Text style={styles.info}>Doğum Tarihi: {userInfo.birthOfDate}</Text>
-      <Text style={styles.info}>Cinsiyet: {userInfo.gender}</Text>
-      <Text style={styles.info}>Biyografi: {userInfo.biography}</Text>
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.followButton}>
+            <Text style={styles.buttonText}>Takip Et</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.messageButton}>
+            <Text style={styles.buttonText}>Mesaj At</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.moreButton}>
+            <Icon name="ellipsis-horizontal" size={20} color="#000" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Grid Layout for posts */}
+      <FlatList
+        data={[1, 2, 3, 4, 5, 6]} // Test verileri
+        renderItem={renderGridItem}
+        keyExtractor={(item, index) => index.toString()}
+        numColumns={2}
+        columnWrapperStyle={styles.grid}
+      />
     </View>
   );
 };
@@ -56,33 +97,118 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: 'transparent',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginVertical: 10,
+  header: {
+    padding: 20,
+    alignItems: 'flex-start',
+    flexDirection:'row',
+    height:250
+  },
+  userInfo: {
+    alignItems: 'flex-start',
+    marginBottom: 15,
   },
   profileImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    marginBottom: 20,
-  },
-  info: {
-    fontSize: 16,
-    marginVertical: 5,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   editButton: {
     position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: '#007BFF',
-    borderRadius: 50,
+    top: 55,
+    right: 40,
+    backgroundColor: '#f0f0f0',
+    padding: 5,
+    borderRadius: 20,
+  },
+  username: {
+    fontSize: 20,
+    fontFamily:'ms-bold',
+    marginTop: 10,
+  },
+  handle: {
+    fontSize: 14,
+    fontFamily:'ms-regular',
+    color: '#555',
+  },
+  biography: {
+    fontSize: 14,
+    fontFamily:'ms-light',
+    color: '#555',
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  stats: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom:50,
+    paddingRight:20
+  },
+  statItem: {
+    alignItems: 'center',
+    marginHorizontal: 10,
+    
+  },
+  statCount: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    fontFamily:'ms-regular'
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#555',
+    fontFamily:'ms-light'
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    position:'absolute',
+    marginTop: 190,
+    marginLeft:11,
+    alignItems:'center'
+    
+
+  },
+  followButton: {
+    backgroundColor: 'pink',
     padding: 10,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    width:150
+  },
+  messageButton: {
+    backgroundColor: 'pink',
+    padding: 10,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    width:150
+  },
+  moreButton: {
+    backgroundColor: 'pink',
+    padding: 10,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    
+  },
+  buttonText:{
+    textAlign:'center',
+    fontFamily:'ms-bold',
+    color:'grey',
+
+
+  },
+  grid: {
+    justifyContent: 'space-around',
+    marginTop: 10,
+    paddingHorizontal: 10,
+  },
+  gridItem: {
+    backgroundColor: '#e0e0e0',
+    width: '48%',
+    height: 150,
+    marginBottom: 10,
+    borderRadius: 10,
   },
 });
 
