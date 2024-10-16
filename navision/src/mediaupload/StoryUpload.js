@@ -75,7 +75,7 @@ const StoryUpload = ({ navigation }) => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.5,
+        quality: 0.7,
       });
       if (!result.canceled) {
         setMediaUri(result.assets[0].uri);

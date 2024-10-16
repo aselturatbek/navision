@@ -13,7 +13,7 @@ const resizeImage = async (uri) => {
   const manipulatedImage = await ImageManipulator.manipulateAsync(
     uri,
     [{ resize: { width: 800 } }], // Genişliği 800 px'e ayarlar
-    { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG } // Sıkıştırır ve JPEG formatında kaydeder
+    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // Sıkıştırır ve JPEG formatında kaydeder
   );
   return manipulatedImage.uri;
 };
