@@ -88,7 +88,6 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   useEffect(() => {
     fetchPosts();
   }, []);
-
   const renderMediaItem = ({ item }) => {
     if (!item || !item.uri) return null; // Hatalı item varsa döndürme
   
@@ -189,7 +188,7 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
             />
             <Text style={styles.authorTextContainer}>
               <Text style={styles.postAuthor}>
-                {`${item.name} ${item.surname}`}
+                {`${item.username} `}
               </Text>
               <Text style={styles.timestampText}>
                 {` • ${timeAgo(item.timestamp)}`}
@@ -349,8 +348,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: -3,
     marginLeft: 32,
-    fontFamily:'ms-regular'
+    fontFamily: 'ms-regular',
+    maxWidth: screenWidth - 240, // Metnin taşmaması için genişlik sınırlaması
+    lineHeight: 14, // Yazıyı sıkıştırarak daha okunabilir hale getirmek için
+    flexWrap: 'wrap', // Yazıyı sarmalayıp birden fazla satıra yaymak
   },
+  
   iconRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -365,7 +368,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
-    marginTop:20,
+    marginBottom:20,
     // shadow
     shadowColor: '#fff', 
     shadowOffset: { width: 0, height: 4 }, 
