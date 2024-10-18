@@ -108,6 +108,7 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   };
   
   
+  
 
   const renderCarousel = (mediaUrls) => (
     <View style={{ position: 'relative' }}>

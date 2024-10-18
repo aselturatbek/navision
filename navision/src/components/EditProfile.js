@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, TextInput, Button, Alert, StyleSheet, Text, Image, ScrollView, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { auth } from '../firebase';
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, writeBatch } from 'firebase/firestore';
 import { getDatabase, ref, set } from 'firebase/database';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
@@ -42,6 +42,40 @@ const EditProfile = ({ route }) => {
     fetchUserInfo();
   }, [firestore]);
 
+  // updatePosts fonksiyonunu burada tanımla
+  const updatePosts = async (userId, username, profileImage) => {
+    const postsRef = collection(firestore, 'posts');
+    const querySnapshot = await getDocs(query(postsRef, where("userId", "==", userId)));
+
+    const batch = writeBatch(firestore);
+    
+    querySnapshot.forEach((doc) => {
+      batch.update(doc.ref, {
+        username: username,
+        profileImage: profileImage
+      });
+    });
+
+    await batch.commit();
+  };
+
+  // updatePosts fonksiyonunu burada tanımla
+  const updateStories = async (userId, username, profileImage) => {
+    const postsRef = collection(firestore, 'stories');
+    const querySnapshot = await getDocs(query(postsRef, where("userId", "==", userId)));
+
+    const batch = writeBatch(firestore);
+    
+    querySnapshot.forEach((doc) => {
+      batch.update(doc.ref, {
+        username: username,
+        profileImage: profileImage
+      });
+    });
+
+    await batch.commit();
+  };
+
   const updateProfile = async () => {
     setLoading(true); // Start loading
     const userId = auth.currentUser.uid;
@@ -56,6 +90,10 @@ const EditProfile = ({ route }) => {
 
       await setDoc(doc(firestore, 'userInfo', userId), userInfo);
       await set(ref(database, 'userInfo/' + userId), userInfo);
+
+      // Posts koleksiyonundaki gönderileri güncelle
+      await updatePosts(userId, userInfo.username, userInfo.profileImage);
+      await updateStories(userId, userInfo.username, userInfo.profileImage);
 
       Alert.alert("Başarılı", "Profil başarıyla güncellendi.", [
         { text: "Tamam", onPress: () => {

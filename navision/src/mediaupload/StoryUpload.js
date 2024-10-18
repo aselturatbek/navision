@@ -1,215 +1,228 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  Dimensions,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import MapView, { Marker } from 'react-native-maps';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, Alert, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { auth, db, storage } from '../firebase';
+import { getFirestore, collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
+import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { Video } from 'expo-av';
+import * as ImageManipulator from 'expo-image-manipulator';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const resizeImage = async (uri) => {
+  const manipulatedImage = await ImageManipulator.manipulateAsync(
+    uri,
+    [{ resize: { width: 800 } }],
+    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+  );
+  return manipulatedImage.uri;
+};
 
 const StoryUpload = ({ navigation }) => {
+  const [mediaUrls, setMediaUrls] = useState([]);
   const [description, setDescription] = useState('');
-  const [mediaUri, setMediaUri] = useState(null);
   const [location, setLocation] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [userInfo, setUserInfo] = useState(null);
-
-  const currentUserId = auth.currentUser?.uid;
-
-  // Kullanıcı bilgilerini Firestore'dan çekme
-  const fetchUserInfo = async () => {
-    const docRef = doc(db, 'userInfo', currentUserId);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      setUserInfo(docSnap.data());
-    } else {
-      console.log('Kullanıcı bilgisi bulunamadı!');
-    }
-  };
+  const [city, setCity] = useState('');
+  const [country, setCountry] = useState('');
+  const [userInfo, setUserInfo] = useState({});
+  const [region, setRegion] = useState(null);
+  const videoRef = useRef(null);
+  const auth = getAuth();
+  const firestore = getFirestore();
+  const storage = getStorage();
 
   useEffect(() => {
-    fetchUserInfo(); // Kullanıcı bilgilerini bileşen yüklendiğinde çek
-  }, []);
+    const fetchUserInfo = async () => {
+      try {
+        const userId = auth.currentUser.uid;
+        const userDocRef = doc(firestore, 'userInfo', userId);
+        const userDoc = await getDoc(userDocRef);
 
-  useEffect(() => {
-    const fetchCurrentLocation = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const { coords } = await Location.getCurrentPositionAsync({});
-        // Konum bilgilerini al
-        const reverseGeocode = await Location.reverseGeocodeAsync({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-        });
-        const address = reverseGeocode[0];
-
-        setLocation({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          city: address.city || 'Bilinmiyor',
-          country: address.country || 'Bilinmiyor',
-        });
-      } else {
-        Alert.alert('Konum izni gerekli', 'Konum iznine izin vermeniz gerekiyor.');
+        if (userDoc.exists()) {
+          setUserInfo(userDoc.data());
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
       }
     };
 
-    fetchCurrentLocation();
-  }, []);
+    fetchUserInfo();
 
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.7,
-      });
-      if (!result.canceled) {
-        setMediaUri(result.assets[0].uri);
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'You need to grant location permission.');
+        return;
       }
-    } catch (error) {
-      console.error('Medya seçme hatası:', error);
-      Alert.alert('Hata', 'Medya seçilemedi.');
-    }
+      const { coords } = await Location.getCurrentPositionAsync({});
+      setLocation(coords);
+      setRegion({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      });
+    })();
+  }, [auth, firestore]);
+
+  const resetForm = () => {
+    setMediaUrls([]);
+    setDescription('');
+    setLocation(null);
+    setCity('');
+    setCountry('');
   };
 
-  const handleMapPress = (e) => {
-    const { latitude, longitude } = e.nativeEvent.coordinate;
-    setLocation((prev) => ({
-      ...prev,
-      latitude,
-      longitude,
-    }));
-
-    Location.reverseGeocodeAsync({ latitude, longitude }).then((address) => {
-      const newAddress = address[0];
-      setLocation((prev) => ({
-        ...prev,
-        city: newAddress.city || 'Bilinmiyor',
-        country: newAddress.country || 'Bilinmiyor',
-      }));
+  const pickMedia = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsMultipleSelection: false,
     });
+
+    if (!result.canceled) {
+      const newMedia = await Promise.all(
+        result.assets.map(async (asset) => ({
+          uri: asset.type === 'image' ? await resizeImage(asset.uri) : asset.uri,
+          type: asset.type,
+        }))
+      );
+      setMediaUrls([...mediaUrls, ...newMedia]);
+    }
   };
 
-  const handleShare = async () => {
-    if (!mediaUri) {
-      Alert.alert('Uyarı', 'Önce bir medya seçin.');
+  const removeMedia = (index) => {
+    const updatedMedia = mediaUrls.filter((_, i) => i !== index);
+    setMediaUrls(updatedMedia);
+  };
+
+  const uploadMedia = async (uri, index, username) => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    
+    const extension = uri.split('.').pop(); // URI'den dosya uzantısını al
+    const uniqueFileName = `stories/${username}_${index}.${extension}`;
+    const mediaRef = storageRef(storage, uniqueFileName);
+    
+    await uploadBytes(mediaRef, blob);
+    const downloadUrl = await getDownloadURL(mediaRef);
+    
+    return { uri: downloadUrl, fileName: uniqueFileName }; // İki değeri döndür
+  };
+
+  const reverseGeocode = async (latitude, longitude) => {
+    const address = await Location.reverseGeocodeAsync({ latitude, longitude });
+    if (address.length > 0) {
+      setCity(address[0].city);
+      setCountry(address[0].country);
+    }
+  };
+
+  const handleLocationSelect = (e) => {
+    const { latitude, longitude } = e.nativeEvent.coordinate;
+    setLocation({ latitude, longitude });
+    reverseGeocode(latitude, longitude);
+  };
+
+  const handleUploadStory = async () => {
+    if (mediaUrls.length === 0 || !location) {
+      Alert.alert('Error', 'Please select media and location.');
       return;
     }
-
-    if (!location) {
-      Alert.alert('Uyarı', 'Lütfen konum bilgisi ekleyin.');
-      return;
-    }
-
-    setLoading(true);
-
+  
     try {
-      // Medyayı Firebase Storage'a yükle
-      const mediaRef = ref(storage, `stories/${currentUserId}/${Date.now()}.jpg`);
-      const img = await fetch(mediaUri);
-      const bytes = await img.blob();
-      await uploadBytes(mediaRef, bytes);
-      const mediaUrl = await getDownloadURL(mediaRef);
-
-      // Firestore'dan çekilen kullanıcı bilgilerini kullan
+      const uploadedMediaUrls = await Promise.all(
+        mediaUrls.map(async (media, index) => {
+          const { uri: downloadUrl, fileName } = await uploadMedia(media.uri, index, userInfo.username || 'username');
+          return { uri: downloadUrl, fileName, type: media.type }; // fileName'i ekle
+        })
+      );
+  
+      const currentUser = auth.currentUser;
+  
       const storyData = {
-        userId: currentUserId,
-        username: userInfo?.username || 'Anonim', // Firestore'dan kullanıcı adı
-        profileImage: userInfo?.profileImage || 'https://via.placeholder.com/150', // Firestore'dan profil resmi
-        mediaUrl,
+        userId: currentUser.uid,
+        username: userInfo.username || 'username',
+        profileImage: userInfo.profileImage || 'https://via.placeholder.com/150',
+        mediaUrls: uploadedMediaUrls.map(media => media.uri), // Sadece URL'leri kaydet
+        mediaFileNames: uploadedMediaUrls.map(media => media.fileName), // Dosya adlarını kaydet
         description,
-        timestamp: new Date(),
         location: {
+          city,
+          country,
           latitude: location.latitude,
           longitude: location.longitude,
-          city: location.city,
-          country: location.country,
         },
+        mediaType: uploadedMediaUrls[0].type, // Sadece tek tip media türünü kullan
+        timestamp: serverTimestamp(),
       };
-
-      console.log('Story Data:', storyData);
-
-      // Firestore'a kaydet
-      await addDoc(collection(db, 'stories'), storyData);
-
-      Alert.alert('Başarılı', 'Story başarıyla yüklendi.');
-      navigation.goBack();
+  
+      await addDoc(collection(firestore, 'stories'), storyData);
+  
+      Alert.alert('Success', 'Story uploaded!');
+      console.log(storyData);
+      resetForm();
+      navigation.navigate('Home', { location });
     } catch (error) {
-      console.error('Story paylaşma hatası:', error);
-      Alert.alert('Hata', 'Story paylaşılırken hata oluştu.');
-    } finally {
-      setLoading(false);
+      console.error('Error uploading story:', error);
+      Alert.alert('Error', 'Failed to upload story. Please try again.');
     }
+  };
+  
+  const renderMediaPreview = (media, index) => {
+    if (media.type === 'video') {
+      return (
+        <View key={index} style={styles.mediaWrapper}>
+          <Video
+            source={{ uri: media.uri }}
+            style={styles.media}
+            resizeMode="contain"
+            useNativeControls
+            shouldPlay={false}
+            onLoad={() => videoRef.current?.playAsync()}
+          />
+          <TouchableOpacity style={styles.removeButton} onPress={() => removeMedia(index)}>
+            <Text style={styles.removeButtonText}>Remove</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
+      <View key={index} style={styles.mediaWrapper}>
+        <Image source={{ uri: media.uri }} style={styles.media} />
+        <TouchableOpacity style={styles.removeButton} onPress={() => removeMedia(index)}>
+          <Text style={styles.removeButtonText}>Remove</Text>
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={30} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>Yeni Hikaye</Text>
-      </View>
-
-      <TouchableOpacity style={styles.mediaPreview} onPress={pickImage}>
-        {mediaUri ? (
-          <Image source={{ uri: mediaUri }} style={styles.media} resizeMode="cover" />
-        ) : (
-          <Ionicons name="image-outline" size={100} color="#ccc" />
-        )}
+    <ScrollView contentContainerStyle={styles.container}>
+      <TouchableOpacity style={styles.mediaButton} onPress={pickMedia}>
+        <Text style={styles.buttonText}>Select Media</Text>
       </TouchableOpacity>
+
+      <View style={styles.mediaContainer}>
+        {mediaUrls.map((media, index) => renderMediaPreview(media, index))}
+      </View>
 
       <TextInput
         style={styles.input}
-        placeholder="Bir şeyler yaz..."
+        placeholder="Add a description..."
         value={description}
         onChangeText={setDescription}
       />
 
-      <MapView
-        style={styles.map}
-        region={
-          location
-            ? {
-                latitude: location.latitude,
-                longitude: location.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }
-            : {
-                latitude: 37.78825,
-                longitude: -122.4324,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }
-        }
-        onPress={handleMapPress} // Haritada tıklanarak yeni konum seçilebiliyor
-      >
-        {location && <Marker coordinate={location} />}
+      <MapView style={styles.map} region={region} onPress={handleLocationSelect}>
+        {location && (
+          <Marker coordinate={location} pinColor="red" title={`${city}, ${country}`} />
+        )}
       </MapView>
 
-      <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.shareButtonText}>Paylaş</Text>
-        )}
+      <TouchableOpacity style={styles.uploadButton} onPress={handleUploadStory}>
+        <Text style={styles.buttonText}>Upload Story</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -217,58 +230,70 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: 'white',
+    backgroundColor: 'transparent'
   },
-  header: {
+  mediaButton: {
+    backgroundColor: '#3897f0',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  uploadButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+    position: 'absolute',
+    marginTop: 600,
+    alignSelf: 'center'
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: 'ms-bold',
+  },
+  mediaContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 30,
-    marginTop: 30,
-    
+    flexWrap: 'wrap',
+    marginVertical: 10,
   },
-  headerText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  mediaPreview: {
-    width: screenWidth - 40,
-    height: screenHeight * 0.4,
-    backgroundColor: '#eaeaea',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 10,
-    marginBottom: 20,
+  mediaWrapper: {
+    position: 'relative',
   },
   media: {
-    width: '100%',
-    height: '100%',
+    width: 100,
+    height: 100,
+    marginRight: 10,
+    marginBottom: 10,
     borderRadius: 10,
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'red',
+    borderRadius: 5,
+    padding: 5,
+  },
+  removeButtonText: {
+    color: 'white',
+    fontSize: 12,
   },
   input: {
     height: 50,
     borderColor: '#ddd',
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 20,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginVertical: 10,
+    fontFamily: 'ms-regular',
   },
   map: {
     width: '100%',
-    height: 150,
-    marginBottom: 20,
+    height: 300,
+    marginVertical: 10,
     borderRadius: 10,
-  },
-  shareButton: {
-    backgroundColor: '#4CAF50',
-    padding: 15,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  shareButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
 });
 

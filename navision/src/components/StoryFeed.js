@@ -9,7 +9,6 @@ const StoryFeed = ({ handleStoryPress }) => {
   const [groupedStories, setGroupedStories] = useState([]);
   const navigation = useNavigation();
 
-  // Sadece story atan kullanıcıların son story'leri gösteriliyor
   useEffect(() => {
     const storiesQuery = query(collection(db, 'stories'), orderBy('timestamp', 'desc'));
 
@@ -24,13 +23,13 @@ const StoryFeed = ({ handleStoryPress }) => {
             profileImage: data.profileImage,
             username: data.username,
             timestamp: data.timestamp,
+            mediaUrls: data.mediaUrls, // Medya URL'lerini ekle
           };
         }
       });
       setGroupedStories(Object.values(latestStories)); // Object.entries'den Object.values'a çevirdik
     });
 
-    // Component unmount olduğunda listener'ı temizle
     return () => unsubscribe();
   }, []);
 

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,9 @@ import { Video } from 'expo-av';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-// Zamanı hesaplayan fonksiyon
 const timeAgo = (timestamp) => {
   const now = new Date();
-  const postDate = timestamp.toDate(); // Firestore'dan gelen timestamp
+  const postDate = timestamp.toDate();
   const diffInMs = now - postDate;
   const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
   const diffInHours = Math.floor(diffInMinutes / 60);
@@ -40,42 +39,33 @@ const StoryModal = ({ visible, onClose, stories }) => {
       <View style={styles.header}>
         <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
         <View style={styles.textContainer}>
-          <Text style={styles.username}>{`${item.username}`}</Text>
+          <Text style={styles.username}>{item.username}</Text>
           <Text style={styles.timestamp}>{timeAgo(item.timestamp)}</Text>
         </View>
       </View>
 
-      {/* Medya tipi kontrolü: Video ya da resim */}
-      {item.mediaUrl && item.mediaUrl.endsWith('.mp4') ? (
+      {item.mediaUrls && item.mediaUrls[0].endsWith('.mp4') ? (
         <Video
           ref={videoRef}
-          source={{ uri: item.mediaUrl }}
+          source={{ uri: item.mediaUrls[0] }} // İlk medya URL'sini kullan
           style={styles.media}
           resizeMode="cover"
           shouldPlay
           isLooping
           muted={false}
-          onPlaybackStatusUpdate={(status) => {
-            if (!status.isPlaying && status.isLoaded) {
-              videoRef.current.playAsync();
-            }
-          }}
         />
       ) : (
-        <Image source={{ uri: item.mediaUrl }} style={styles.media} />
+        <Image source={{ uri: item.mediaUrls[0] }} style={styles.media} />
       )}
 
-      {/* Şehir ve ülke bilgisi, boş olabilir diye kontrol ekliyoruz */}
       <Text style={styles.location}>
         {item.location?.city && item.location?.country
           ? `${item.location.city}, ${item.location.country}`
           : 'Konum bilgisi yok'}
       </Text>
 
-      {/* Hikaye açıklaması */}
       <Text style={styles.description}>{item.description}</Text>
 
-      {/* Kapatma butonu */}
       <TouchableOpacity onPress={onClose} style={styles.closeButton}>
         <Ionicons name="close" size={28} color="#fff" />
       </TouchableOpacity>

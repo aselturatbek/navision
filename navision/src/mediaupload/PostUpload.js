@@ -6,18 +6,17 @@ import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'fire
 import { getAuth } from 'firebase/auth';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { Video } from 'expo-av'; // Importing the Video component
+import { Video } from 'expo-av';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 const resizeImage = async (uri) => {
   const manipulatedImage = await ImageManipulator.manipulateAsync(
     uri,
-    [{ resize: { width: 800 } }], // Genişliği 800 px'e ayarlar
-    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // Sıkıştırır ve JPEG formatında kaydeder
+    [{ resize: { width: 800 } }],
+    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
   );
   return manipulatedImage.uri;
 };
-
 
 const PostUpload = ({ navigation }) => {
   const [mediaUrls, setMediaUrls] = useState([]);
@@ -75,35 +74,39 @@ const PostUpload = ({ navigation }) => {
   };
 
   const pickMedia = async () => {
-     const result = await ImagePicker.launchImageLibraryAsync({
-       mediaTypes: ImagePicker.MediaTypeOptions.All,
-       allowsMultipleSelection: true,
-     });
-   
-     if (!result.canceled) {
-       const newMedia = await Promise.all(
-         result.assets.map(async (asset) => ({
-           uri: asset.type === 'image' ? await resizeImage(asset.uri) : asset.uri,
-           type: asset.type,
-         }))
-       );
-       setMediaUrls([...mediaUrls, ...newMedia]);
-     }
-   };
-   
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsMultipleSelection: true,
+    });
+
+    if (!result.canceled) {
+      const newMedia = await Promise.all(
+        result.assets.map(async (asset) => ({
+          uri: asset.type === 'image' ? await resizeImage(asset.uri) : asset.uri,
+          type: asset.type,
+        }))
+      );
+      setMediaUrls([...mediaUrls, ...newMedia]);
+    }
+  };
 
   const removeMedia = (index) => {
     const updatedMedia = mediaUrls.filter((_, i) => i !== index);
     setMediaUrls(updatedMedia);
   };
 
-  const uploadMedia = async (uri) => {
+  const uploadMedia = async (uri, index, username) => {
     const response = await fetch(uri);
     const blob = await response.blob();
-    const uniqueFileName = `posts/${auth.currentUser.uid}_${Date.now()}.jpg`;
+    
+    const extension = uri.split('.').pop(); // URI'den dosya uzantısını al
+    const uniqueFileName = `posts/${username}_${index}.${extension}`;
     const mediaRef = storageRef(storage, uniqueFileName);
+    
     await uploadBytes(mediaRef, blob);
-    return getDownloadURL(mediaRef);
+    const downloadUrl = await getDownloadURL(mediaRef);
+    
+    return { uri: downloadUrl, fileName: uniqueFileName }; // İki değeri döndür
   };
 
   const reverseGeocode = async (latitude, longitude) => {
@@ -128,49 +131,37 @@ const PostUpload = ({ navigation }) => {
   
     try {
       const uploadedMediaUrls = await Promise.all(
-        mediaUrls.map(async (media) => {
-          try {
-            const response = await fetch(media.uri);
-            const blob = await response.blob();
-  
-            const extension = media.type === 'video' ? 'mp4' : 'jpg';
-            const uniqueFileName = `posts/${auth.currentUser.uid}_${Date.now()}.${extension}`;
-            const mediaRef = storageRef(storage, uniqueFileName);
-  
-            await uploadBytes(mediaRef, blob);
-            const downloadUrl = await getDownloadURL(mediaRef);
-  
-            return { uri: downloadUrl, type: media.type };
-          } catch (error) {
-            console.error('Error uploading media:', error);
-            throw new Error('Media upload failed');
-          }
+        mediaUrls.map(async (media, index) => {
+          const { uri: downloadUrl, fileName } = await uploadMedia(media.uri, index, userInfo.username || 'username');
+          return { uri: downloadUrl, fileName, type: media.type }; // fileName'i ekle
         })
       );
   
       const currentUser = auth.currentUser;
   
-      // Medya tipi belirleme
-      const mediaType = uploadedMediaUrls.length > 1 ? 'carousel' : uploadedMediaUrls[0].type;
-  
       const postData = {
         userId: currentUser.uid,
-        username: userInfo.username || 'Anonymous',
-        name: userInfo.name || 'First Name',
-        surname: userInfo.surname || 'Last Name',
+        username: userInfo.username || 'username',
         profileImage: userInfo.profileImage || 'https://via.placeholder.com/150',
-        mediaUrls: uploadedMediaUrls,
+        mediaUrls: uploadedMediaUrls.map(media => media.uri), // Sadece URL'leri kaydet
+        mediaFileNames: uploadedMediaUrls.map(media => media.fileName), // Dosya adlarını kaydet
         description,
-        location: { city, country },
-        mediaType: mediaType, // Medya tipini ekledik
+        location: {
+          city,
+          country,
+          latitude: location.latitude,
+          longitude: location.longitude,
+        },
+        mediaType: uploadedMediaUrls.length > 1 ? 'carousel' : uploadedMediaUrls[0].type,
         timestamp: serverTimestamp(),
         likes: 0,
         comments: 0,
         shares: 0,
         saves: 0,
+        likedBy: [],
+        commentedBy: [],
+        savedBy: [],
       };
-  
-      console.log('Post Data:', postData);
   
       await addDoc(collection(firestore, 'posts'), postData);
   
@@ -183,24 +174,21 @@ const PostUpload = ({ navigation }) => {
     }
   };
   
-   
+  
 
   const renderMediaPreview = (media, index) => {
     if (media.type === 'video') {
       return (
         <View key={index} style={styles.mediaWrapper}>
           <Video
-               source={{ uri: media.uri }}
-               style={styles.media}
-               resizeMode="contain"
-               useNativeControls
-               shouldPlay={false} // Ön yükle
-               onLoad={() => videoRef.current?.playAsync()} // Yüklendikten sonra oynat
-           />
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() => removeMedia(index)}
-          >
+            source={{ uri: media.uri }}
+            style={styles.media}
+            resizeMode="contain"
+            useNativeControls
+            shouldPlay={false}
+            onLoad={() => videoRef.current?.playAsync()}
+          />
+          <TouchableOpacity style={styles.removeButton} onPress={() => removeMedia(index)}>
             <Text style={styles.removeButtonText}>Remove</Text>
           </TouchableOpacity>
         </View>
@@ -209,10 +197,7 @@ const PostUpload = ({ navigation }) => {
     return (
       <View key={index} style={styles.mediaWrapper}>
         <Image source={{ uri: media.uri }} style={styles.media} />
-        <TouchableOpacity
-          style={styles.removeButton}
-          onPress={() => removeMedia(index)}
-        >
+        <TouchableOpacity style={styles.removeButton} onPress={() => removeMedia(index)}>
           <Text style={styles.removeButtonText}>Remove</Text>
         </TouchableOpacity>
       </View>
@@ -248,6 +233,7 @@ const PostUpload = ({ navigation }) => {
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

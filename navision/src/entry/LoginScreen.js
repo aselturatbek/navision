@@ -50,7 +50,7 @@ const LoginScreen = ({ navigation }) => {
        <Text style={styles.title}>
               navision’a {"\n"}
               <Text style={styles.title2}>
-               Kayıt Ol.
+               Giriş Yap.
               </Text>
        </Text>
 
