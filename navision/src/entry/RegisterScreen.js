@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, TextInput, Alert, StyleSheet, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, TextInput, Alert, StyleSheet, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
 import { auth } from '../firebase'; 
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
@@ -22,6 +22,15 @@ const RegisterScreen = () => {
   const [gender, setGender] = useState('');
   const firestore = getFirestore(); 
   const database = getDatabase(); 
+
+  const nameInputRef = useRef(null);
+  const phoneInputRef = useRef(null);
+  const dobInputRef = useRef(null);
+  const genderInputRef = useRef(null);
+  const usernameInputRef = useRef(null);
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
+  const confirmPasswordInputRef = useRef(null);
 
   const checkUsernameExists = async (username) => {
     const snapshot = await getDocs(collection(firestore, 'userInfo'));
@@ -111,34 +120,33 @@ const RegisterScreen = () => {
 
   const renderStepIndicator = () => (
     <View style={styles.stepIndicator}>
-      {[1, 2, 3].map((step) => (
-        <View
-          key={step}
-          style={[
-            styles.circle,
-            { 
+      {[1, 2, 3].map((step, index) => (
+        <React.Fragment key={step}>
+          <View
+            style={[styles.circle, { 
               backgroundColor: currentStep >= step ? '#007BFF' : '#ddd',
               width: currentStep === step ? null : 35,
               height: currentStep === step ? null : 30,
               paddingHorizontal: currentStep === step ? 10 : 0,
               justifyContent: currentStep === step ? 'center' : 'center',
-            }
-          ]}
-        >
-          {currentStep > step || (currentStep === 3 && step === 3) ? (
-            <Icon name="checkmark" size={20} color="#fff" />
-          ) : currentStep === step ? (
-            <Text style={styles.stepTextActive}>
-              {step === 1 ? 'Kişisel Bilgiler' : step === 2 ? 'Güvenlik Bilgileri' : ''}
-            </Text>
-          ) : (
-            <Text style={styles.stepText}>{step}</Text>
-          )}
-        </View>
+            }]}
+          >
+            {currentStep > step || (currentStep === 3 && step === 3) ? (
+              <Icon name="checkmark" size={20} color="#fff" />
+            ) : currentStep === step ? (
+              <Text style={styles.stepTextActive}>
+                {step === 1 ? 'Kişisel Bilgiler' : step === 2 ? 'Güvenlik Bilgileri' : ''}
+              </Text>
+            ) : (
+              <Text style={styles.stepText}>{step}</Text>
+            )}
+          </View>
+          {/* Sadece son adımdan önce mavi çizgi koyuyoruz */}
+          {index < 2 && <View style={styles.stepLine} />}
+        </React.Fragment>
       ))}
     </View>
   );
-
   const renderContent = () => {
     switch (currentStep) {
       case 1:
@@ -156,12 +164,19 @@ const RegisterScreen = () => {
               style={styles.input}
               value={name}
               onChangeText={setName}
+              returnKeyType="next"
+              onSubmitEditing={() => phoneInputRef.current.focus()}
+              blurOnSubmit={false}
             />
             <Text style={styles.labelText}>Telefon Numarası</Text>
             <TextInput
               style={styles.input}
               value={phoneNumber}
               onChangeText={setPhoneNumber}
+              ref={phoneInputRef}
+              returnKeyType="next"
+              onSubmitEditing={() => dobInputRef.current.focus()}
+              blurOnSubmit={false}
             />
           <View style={styles.rowContainer}>
             <View style={{ flex: 1, marginRight: 10 }}>
@@ -171,6 +186,10 @@ const RegisterScreen = () => {
                 placeholder="gg.aa.yyyy"
                 value={dateOfBirth}
                 onChangeText={setDateOfBirth}
+                ref={dobInputRef}
+                returnKeyType="next"
+                onSubmitEditing={() => genderInputRef.current.focus()}
+                blurOnSubmit={false}
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -180,6 +199,8 @@ const RegisterScreen = () => {
                 placeholder="Erkek, Kadın, Diğer"
                 value={gender}
                 onChangeText={setGender}
+                ref={genderInputRef}
+                returnKeyType="done"
               />
             </View>
           </View>
@@ -212,6 +233,10 @@ const RegisterScreen = () => {
               placeholder="username"
               value={username}
               onChangeText={setUsername}
+              ref={usernameInputRef}
+              returnKeyType="next"
+              onSubmitEditing={() => emailInputRef.current.focus()}
+              blurOnSubmit={false}
             />
             <Text style={styles.labelText}>E-mail</Text>
             <TextInput
@@ -219,6 +244,10 @@ const RegisterScreen = () => {
               placeholder="Email"
               value={email}
               onChangeText={setEmail}
+              ref={emailInputRef}
+              returnKeyType="next"
+              onSubmitEditing={() => passwordInputRef.current.focus()}
+              blurOnSubmit={false}
             />
             <Text style={styles.labelText}>Şifre</Text>
             <TextInput
@@ -227,6 +256,10 @@ const RegisterScreen = () => {
               secureTextEntry
               value={password}
               onChangeText={setPassword}
+              ref={passwordInputRef}
+              returnKeyType="next"
+              onSubmitEditing={() => confirmPasswordInputRef.current.focus()}
+              blurOnSubmit={false}
             />
             <Text style={styles.labelText}>Şifre Onayla</Text>
             <TextInput
@@ -235,6 +268,9 @@ const RegisterScreen = () => {
               secureTextEntry
               value={confirmPassword}
               onChangeText={setConfirmPassword}
+              ref={confirmPasswordInputRef}
+              returnKeyType="done"
+              onSubmitEditing={registerUser}
             />
             <TouchableOpacity style={styles.button} onPress={registerUser}>
               <Text style={styles.buttonText}>Kayıt Ol</Text>
@@ -264,14 +300,29 @@ const RegisterScreen = () => {
     }
   };
   
-  return <ScrollView contentContainerStyle={styles.container}>{renderContent()}</ScrollView>;
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0:50}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {renderContent()}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor:'transparent',
+    
+  },
+  scrollContainer: {
     flexGrow: 1,
     padding: 30,
-    backgroundColor: '#fff',
+    justifyContent: 'center',
   },
   title: {
     fontSize:32,
@@ -335,18 +386,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontFamily:'ms-bold'
   },
-  stepText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    fontFamily:'ms-bold'
-  },
-  stepTextActive: {
-    fontSize: 14,
-    color: '#fff',
-    textAlign: 'center',
-    fontFamily:'ms-regular'
+  stepIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 40,
   },
   circle: {
     height: 50,
@@ -355,10 +399,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 0,
   },
-  stepIndicator: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 40,
+  stepLine: {
+    width: 70,  // Çizginin genişliği, kutular arasındaki boşluğa göre ayarla
+    height: 4,  // Çizginin kalınlığı
+    backgroundColor: '#007BFF',  // Çizginin rengi (mavi)
+    borderRadius: 2,  // Çizginin uçlarının yuvarlak olması için
+  },
+  stepText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontFamily: 'ms-bold',
+  },
+  stepTextActive: {
+    fontSize: 14,
+    color: '#fff',
+    textAlign: 'center',
+    fontFamily: 'ms-regular',
   },
   center: {
     flex: 1,
