@@ -65,10 +65,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
+    
   },
   dropdown: {
-    marginTop: 50,
-    marginRight: 10,
+    margin:50,
+    marginLeft:20,
     width: 200,
     backgroundColor: 'white',
     borderRadius: 8,

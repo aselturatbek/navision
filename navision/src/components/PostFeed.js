@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: -70,
-    marginRight: -10,
+    marginRight: -12,
   },
   button: {
     width: 43,
@@ -400,8 +400,8 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
-    marginBottom:20,
+    marginRight: 7,
+    marginBottom:10,
     marginTop:20,
     // shadow
     shadowColor: '#fff', 

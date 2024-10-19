@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Alert, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Alert, Image, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getFirestore, collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -26,6 +26,7 @@ const StoryUpload = ({ navigation }) => {
   const [country, setCountry] = useState('');
   const [userInfo, setUserInfo] = useState({});
   const [region, setRegion] = useState(null);
+  const [loading, setLoading] = useState(false); // Yükleme durumu için state
   const videoRef = useRef(null);
   const auth = getAuth();
   const firestore = getFirestore();
@@ -100,7 +101,8 @@ const StoryUpload = ({ navigation }) => {
     const blob = await response.blob();
     
     const extension = uri.split('.').pop(); // URI'den dosya uzantısını al
-    const uniqueFileName = `stories/${username}_${index}.${extension}`;
+    const uniqueFileName = `stories/${username}_${Date.now()}.${extension}`; // Benzersiz hale getirildi
+
     const mediaRef = storageRef(storage, uniqueFileName);
     
     await uploadBytes(mediaRef, blob);
@@ -128,6 +130,8 @@ const StoryUpload = ({ navigation }) => {
       Alert.alert('Error', 'Please select media and location.');
       return;
     }
+
+    setLoading(true); // Yükleme başladığında true olarak ayarla
   
     try {
       const uploadedMediaUrls = await Promise.all(
@@ -165,6 +169,8 @@ const StoryUpload = ({ navigation }) => {
     } catch (error) {
       console.error('Error uploading story:', error);
       Alert.alert('Error', 'Failed to upload story. Please try again.');
+    } finally {
+      setLoading(false); // Yükleme tamamlandığında false olarak ayarla
     }
   };
   
@@ -220,7 +226,11 @@ const StoryUpload = ({ navigation }) => {
       </MapView>
 
       <TouchableOpacity style={styles.uploadButton} onPress={handleUploadStory}>
-        <Text style={styles.buttonText}>Upload Story</Text>
+        {loading ? ( // Yükleme durumu kontrolü
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Upload Story</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -229,14 +239,14 @@ const StoryUpload = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 30,
     backgroundColor: 'transparent'
   },
   mediaButton: {
     backgroundColor: '#3897f0',
     borderRadius: 8,
     padding: 15,
-    marginBottom: 10,
+    marginTop: 40,
     alignItems: 'center',
   },
   uploadButton: {

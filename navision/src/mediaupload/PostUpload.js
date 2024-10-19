@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Alert, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Alert, Image, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getFirestore, collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -26,6 +26,7 @@ const PostUpload = ({ navigation }) => {
   const [country, setCountry] = useState('');
   const [userInfo, setUserInfo] = useState({});
   const [region, setRegion] = useState(null);
+  const [loading, setLoading] = useState(false); // Yükleme durumu için state
   const videoRef = useRef(null);
   const auth = getAuth();
   const firestore = getFirestore();
@@ -100,7 +101,7 @@ const PostUpload = ({ navigation }) => {
     const blob = await response.blob();
     
     const extension = uri.split('.').pop(); // URI'den dosya uzantısını al
-    const uniqueFileName = `posts/${username}_${index}.${extension}`;
+    const uniqueFileName = `posts/${username}_${Date.now()}_${index}.${extension}`; // Dosya adı benzersiz hale getirildi
     const mediaRef = storageRef(storage, uniqueFileName);
     
     await uploadBytes(mediaRef, blob);
@@ -128,12 +129,15 @@ const PostUpload = ({ navigation }) => {
       Alert.alert('Error', 'Please select media and location.');
       return;
     }
+
+    setLoading(true); // Yükleme başladığında true olarak ayarla
   
     try {
+      // Yeni bir dizi oluştur ve her medya için URL'leri yükle
       const uploadedMediaUrls = await Promise.all(
         mediaUrls.map(async (media, index) => {
           const { uri: downloadUrl, fileName } = await uploadMedia(media.uri, index, userInfo.username || 'username');
-          return { uri: downloadUrl, fileName, type: media.type }; // fileName'i ekle
+          return { uri: downloadUrl, fileName, type: media.type };
         })
       );
   
@@ -143,8 +147,8 @@ const PostUpload = ({ navigation }) => {
         userId: currentUser.uid,
         username: userInfo.username || 'username',
         profileImage: userInfo.profileImage || 'https://via.placeholder.com/150',
-        mediaUrls: uploadedMediaUrls.map(media => media.uri), // Sadece URL'leri kaydet
-        mediaFileNames: uploadedMediaUrls.map(media => media.fileName), // Dosya adlarını kaydet
+        mediaUrls: uploadedMediaUrls.map(media => media.uri), // Her post için bağımsız URL'ler
+        mediaFileNames: uploadedMediaUrls.map(media => media.fileName),
         description,
         location: {
           city,
@@ -156,6 +160,7 @@ const PostUpload = ({ navigation }) => {
         timestamp: serverTimestamp(),
         likes: 0,
         commentsCount: 0,
+        comments: 0,
         shares: 0,
         saves: 0,
         likedBy: [],
@@ -171,11 +176,11 @@ const PostUpload = ({ navigation }) => {
     } catch (error) {
       console.error('Error uploading post:', error);
       Alert.alert('Error', 'Failed to upload post. Please try again.');
+    } finally {
+      setLoading(false); // Yükleme tamamlandığında false olarak ayarla
     }
   };
   
-  
-
   const renderMediaPreview = (media, index) => {
     if (media.type === 'video') {
       return (
@@ -228,18 +233,21 @@ const PostUpload = ({ navigation }) => {
       </MapView>
 
       <TouchableOpacity style={styles.uploadButton} onPress={handleUploadPost}>
-        <Text style={styles.buttonText}>Upload Post</Text>
+        {loading ? ( // Yükleme durumu kontrolü
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Upload Post</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
 };
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: 'transparent'
+    backgroundColor: 'transparent',
   },
   mediaButton: {
     backgroundColor: '#3897f0',
@@ -253,10 +261,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     alignItems: 'center',
-    position:'absolute',
-    marginTop:600,
-    alignSelf:'center'
-
+    position: 'absolute',
+    marginTop: 600,
+    alignSelf: 'center',
   },
   buttonText: {
     color: '#fff',
