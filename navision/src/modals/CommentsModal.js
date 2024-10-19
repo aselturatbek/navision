@@ -107,7 +107,7 @@ const CommentsModal = ({ visible, onClose, postId, user }) => {
           </View>
 
           <View style={styles.commentInputContainer}>
-            <Image source={require('../assets/images/default_cat.jpg')} style={styles.commentUserImage} />
+            <Image  source={{ uri: user?.profileImage || 'https://via.placeholder.com/150' }} style={styles.commentUserImage} />
             <TextInput
               style={styles.input}
               placeholder="Yorum ekle"
