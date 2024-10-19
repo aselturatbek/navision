@@ -15,6 +15,11 @@ const HomeScreen = () => {
   const [stories, setStories] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [selectedPostId, setSelectedPostId] = useState(null);
+  const [isModalVisible, setModalVisible] = useState(false);
+
+  
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     // refresh
@@ -75,9 +80,10 @@ const HomeScreen = () => {
   const [isShareModalVisible, setIsShareModalVisible] = useState(false);
   const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
 
-  const handleCommentPress = () => {
-    setIsCommentsModalVisible(true);
-  };
+  const handleCommentPress = (postId) => {
+    setSelectedPostId(postId); // Burada postId'yi ayarlıyoruz
+    setIsCommentsModalVisible(true); // Yorum modalını açmak için değiştirin
+};
 
   const handleSharePress = () => {
     setIsShareModalVisible(true);
@@ -117,7 +123,12 @@ const HomeScreen = () => {
           handleSharePress={handleSharePress}
         />
           
-      <CommentsModal visible={isCommentsModalVisible} onClose={closeCommentsModal} />
+      <CommentsModal 
+      visible={isCommentsModalVisible} 
+      onClose={closeCommentsModal} 
+      postId={selectedPostId} 
+      user={user} 
+      />
       <ShareModal visible={isShareModalVisible} onClose={closeShareModal} />
       </ScrollView>
     </View>

@@ -1,94 +1,157 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Modal, View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Image, Alert } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { PanGestureHandler } from 'react-native-gesture-handler';
+import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 
-const CommentsModal = ({ visible, onClose }) => {
+// Zamanı uygun formatta döndürme fonksiyonu
+const formatTimeAgo = (timestamp) => {
+  const now = new Date();
+  const diffInMs = now - timestamp;
+  const diffInSeconds = Math.floor(diffInMs / 1000);
+
+  if (diffInSeconds < 60) {
+    return `${diffInSeconds} saniye önce`;
+  } else if (diffInSeconds < 3600) {
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    return `${diffInMinutes} dakika önce`;
+  } else if (diffInSeconds < 86400) {
+    const diffInHours = Math.floor(diffInSeconds / 3600);
+    return `${diffInHours} saat önce`;
+  } else {
+    const diffInDays = Math.floor(diffInSeconds / 86400);
+    return `${diffInDays} gün önce`;
+  }
+};
+
+const CommentsModal = ({ visible, onClose, postId, user }) => {
   const [newComment, setNewComment] = useState('');
-  const [comments, setComments] = useState([
-    { id: 1, author: 'yasmin', comment: 'Buraya yıllar önce ailemle gitmiştik. Şimdi bunu gördüğümde anılarım aklıma geldi ya...', likes: 43, replies: 11, time: '2 saat önce', image: require('../assets/images/default_cat.jpg') },
-    { id: 2, author: 'cihan', comment: 'Bu kadar uzağa gidip de bize haber vermemen üzdü beni. Bir daha ki sefere beraberiz unutma!', likes: 22, replies: 3, time: '1 saat önce', image: require('../assets/images/default_cat.jpg') },
-    { id: 3, author: 'furkan', comment: '#keyif diyorsun yani:) iyi eğlenceler kardeşim.', likes: 12, replies: 2, time: '5 dakika önce', image: require('../assets/images/default_cat.jpg') }
-  ]);
+  const [comments, setComments] = useState([]);
+  const firestore = getFirestore();
 
-  const handleCommentSubmit = () => {
+  const handleCommentSubmit = async () => {
+    if (!newComment.trim() || !user) return;
+
     const newCommentData = {
-      id: comments.length + 1,
-      author: 'You',
+      username: user.username || 'username',
+      profileImage: user.profileImage || 'https://via.placeholder.com/150',
       comment: newComment,
+      timestamp: new Date(), // Timestamps for Firestore
       likes: 0,
       replies: 0,
-      time: 'Şimdi',
-      image: require('../assets/images/default_cat.jpg'),
+      repliedBy: [],
     };
-    setComments([newCommentData, ...comments]);
-    setNewComment('');
-  };
 
-  const handleGesture = (event) => {
-    if (event.nativeEvent.translationY > 100) {
-      onClose(); // Close the modal if swipe down exceeds a certain threshold
+    try {
+      await updateDoc(doc(firestore, 'posts', postId), {
+        commentedBy: arrayUnion(newCommentData),
+        comments: arrayUnion(newCommentData),
+        commentsCount: (await getDoc(doc(firestore, 'posts', postId))).data().commentsCount + 1,
+      });
+      // Yorumları anında güncelle
+      setComments(prevComments => [newCommentData, ...prevComments]); 
+      setNewComment('');
+    } catch (error) {
+      console.error('Yorum eklenirken hata oluştu:', error);
+      Alert.alert('Hata', 'Yorum eklenirken bir hata oluştu. Lütfen tekrar deneyin.');
     }
   };
 
+  const handleCommentDelete = async (comment) => {
+    try {
+      await updateDoc(doc(firestore, 'posts', postId), {
+        commentedBy: arrayRemove(comment),
+        comments: arrayRemove(comment),
+        commentsCount: (await getDoc(doc(firestore, 'posts', postId))).data().commentsCount - 1,
+      });
+      // Yorum silindikten sonra listeyi güncelle
+      setComments(prevComments => prevComments.filter(c => c.comment !== comment.comment)); 
+      Alert.alert('Başarılı', 'Yorum silindi.');
+    } catch (error) {
+      console.error('Yorum silinirken hata oluştu:', error);
+      Alert.alert('Hata', 'Yorum silinirken bir hata oluştu. Lütfen tekrar deneyin.');
+    }
+  };
+
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (!postId) return;
+
+      const postRef = doc(firestore, 'posts', postId);
+      const postDoc = await getDoc(postRef);
+
+      if (postDoc.exists()) {
+        const data = postDoc.data();
+        // Yorumları ters sırada ayarlama
+        setComments(data.commentedBy || []);
+      } else {
+        console.error(`Post with ID ${postId} does not exist.`);
+        Alert.alert('Hata', 'Bu gönderi mevcut değil.');
+      }
+    };
+
+    if (visible) {
+      fetchComments();
+    }
+  }, [visible, postId, firestore]);
+
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
-      <PanGestureHandler onGestureEvent={handleGesture}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            {/* Header */}
-            <View style={styles.header}>
-              <Text style={styles.commentsCount}>Yorumlar ({comments.length})</Text>
-              <TouchableOpacity onPress={onClose}>
-                <Text style={styles.filterText}>Filtrele</Text>
-              </TouchableOpacity>
-            </View>
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.header}>
+            <Text style={styles.commentsCount}>Yorumlar ({comments.length})</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.filterText}>Kapat</Text>
+            </TouchableOpacity>
+          </View>
 
-            {/* Comment Input */}
-            <View style={styles.commentInputContainer}>
-              <Image source={require('../assets/images/default_cat.jpg')} style={styles.commentUserImage} />
-              <TextInput
-                style={styles.input}
-                placeholder="Yorum ekle"
-                value={newComment}
-                onChangeText={setNewComment}
-                placeholderTextColor="#999"
-              />
-              <TouchableOpacity onPress={handleCommentSubmit}>
-                <Ionicons name="send-outline" size={24} color="#000000" />
-              </TouchableOpacity>
-            </View>
+          <View style={styles.commentInputContainer}>
+            <Image source={require('../assets/images/default_cat.jpg')} style={styles.commentUserImage} />
+            <TextInput
+              style={styles.input}
+              placeholder="Yorum ekle"
+              value={newComment}
+              onChangeText={setNewComment}
+              placeholderTextColor="#999"
+            />
+            <TouchableOpacity onPress={handleCommentSubmit}>
+              <Ionicons name="send-outline" size={24} color="#000000" />
+            </TouchableOpacity>
+          </View>
 
-            {/* Comments List */}
-            <FlatList
-              data={comments}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
-                <View style={styles.commentItem}>
-                  <Image source={item.image} style={styles.commentAuthorImage} />
-                  <View style={styles.commentContent}>
-                    <Text style={styles.commentAuthor}>{item.author}</Text>
-                    <Text style={styles.timestamp}>{item.time}</Text>
-                    <Text style={styles.commentText}>{item.comment}</Text>
-                    <View style={styles.commentActions}>
-                      <View style={styles.actionIcons}>
-                        <TouchableOpacity style={styles.iconButton}>
-                          <Feather name="heart" size={15} style={styles.icons} />
-                          <Text style={styles.actionText}>{item.likes}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.iconButton}>
-                          <Feather name="message-circle" size={15} style={styles.icons} />
-                          <Text style={styles.actionText}>{item.replies}</Text>
-                        </TouchableOpacity>
-                      </View>
+          <FlatList
+            data={comments}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.commentItem}>
+                <Image source={{ uri: item.profileImage }} style={styles.commentAuthorImage} />
+                <View style={styles.commentContent}>
+                  <Text style={styles.commentAuthor}>{item.username}</Text>
+                  <Text style={styles.timestamp}>
+                    {formatTimeAgo(item.timestamp)} {/* Tarihi uygun formatta göster */}
+                  </Text>
+                  <Text style={styles.commentText}>{item.comment}</Text>
+                  <View style={styles.commentActions}>
+                    <View style={styles.actionIcons}>
+                      <TouchableOpacity style={styles.iconButton}>
+                        <Feather name="heart" size={15} style={styles.icons} />
+                        <Text style={styles.actionText}>{item.likes}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.iconButton}>
+                        <Feather name="message-circle" size={15} style={styles.icons} />
+                        <Text style={styles.actionText}>{item.replies}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => handleCommentDelete(item)}>
+                        <Text style={styles.actionText}>Sil</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 </View>
-              )}
-            />
-          </View>
+              </View>
+            )}
+          />
         </View>
-      </PanGestureHandler>
+      </View>
     </Modal>
   );
 };
@@ -100,6 +163,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
+    height: 500,
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -123,17 +187,17 @@ const styles = StyleSheet.create({
   },
   commentsCount: {
     fontSize: 16,
-    fontFamily:'ms-bold',
+    fontFamily: 'ms-bold',
     color: '#333',
   },
   filterText: {
     color: '#000000',
-    fontFamily:'ms-bold'
+    fontFamily: 'ms-bold',
   },
   commentInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20
+    marginBottom: 20,
   },
   commentUserImage: {
     width: 35,
@@ -149,7 +213,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginRight: 10,
     fontSize: 14,
-    fontFamily:'ms-regular'
+    fontFamily: 'ms-regular',
   },
   commentItem: {
     flexDirection: 'row',
@@ -168,7 +232,7 @@ const styles = StyleSheet.create({
   commentAuthor: {
     fontSize: 14,
     fontWeight: 'bold',
-    fontFamily:'ms-bold',
+    fontFamily: 'ms-bold',
     color: '#333',
   },
   timestamp: {
@@ -179,7 +243,7 @@ const styles = StyleSheet.create({
   },
   commentText: {
     fontSize: 13,
-    fontFamily:'ms-regular',
+    fontFamily: 'ms-regular',
     color: '#555',
     marginBottom: 5,
   },
@@ -198,7 +262,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     color: '#555',
-    fontFamily:'ms-light',
+    fontFamily: 'ms-light',
     marginLeft: 5,
   },
 });
