@@ -3,19 +3,25 @@ import { Modal, View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, I
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 
-const timeAgo = (timestamp) => {
+const formatTimeAgo = (timestamp) => {
+  // Eğer timestamp bir Firestore timestamp nesnesi ise, Date objesine dönüştür
+  const date = timestamp instanceof Date ? timestamp : timestamp.toDate();
+  
   const now = new Date();
-  const postDate = timestamp.toDate();
-  const diffInMs = now - postDate;
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInMs = now - date; // Şimdi ile tarih arasındaki fark
+  const diffInSeconds = Math.floor(diffInMs / 1000);
 
-  if (diffInHours < 1) {
-    return `${Math.floor(diffInMs / (1000 * 60))}dk önce`;
-  } else if (diffInHours < 24) {
-    return `${diffInHours}sa önce`;
+  if (diffInSeconds < 60) {
+    return `${diffInSeconds} saniye önce`;
+  } else if (diffInSeconds < 3600) {
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    return `${diffInMinutes} dakika önce`;
+  } else if (diffInSeconds < 86400) {
+    const diffInHours = Math.floor(diffInSeconds / 3600);
+    return `${diffInHours} saat önce`;
   } else {
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}g önce`;
+    const diffInDays = Math.floor(diffInSeconds / 86400);
+    return `${diffInDays} gün önce`;
   }
 };
 const CommentsModal = ({ visible, onClose, postId, user }) => {
@@ -123,7 +129,7 @@ const CommentsModal = ({ visible, onClose, postId, user }) => {
                 <View style={styles.commentContent}>
                   <Text style={styles.commentAuthor}>{item.username}</Text>
                   <Text style={styles.timestamp}>
-                  {`${timeAgo(item.timestamp)}`}
+                    {formatTimeAgo(item.timestamp)} {/* Tarihi uygun formatta göster */}
                   </Text>
                   <Text style={styles.commentText}>{item.comment}</Text>
                   <View style={styles.commentActions}>
