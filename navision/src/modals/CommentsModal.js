@@ -4,11 +4,9 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 
 const formatTimeAgo = (timestamp) => {
-  // Eğer timestamp bir Firestore timestamp nesnesi ise, Date objesine dönüştür
   const date = timestamp instanceof Date ? timestamp : timestamp.toDate();
-  
   const now = new Date();
-  const diffInMs = now - date; // Şimdi ile tarih arasındaki fark
+  const diffInMs = now - date;
   const diffInSeconds = Math.floor(diffInMs / 1000);
 
   if (diffInSeconds < 60) {
@@ -24,9 +22,11 @@ const formatTimeAgo = (timestamp) => {
     return `${diffInDays} gün önce`;
   }
 };
+
 const CommentsModal = ({ visible, onClose, postId, user }) => {
   const [newComment, setNewComment] = useState('');
   const [comments, setComments] = useState([]);
+  const [postOwner, setPostOwner] = useState(''); // Post sahibi için state ekledim
   const firestore = getFirestore();
 
   const handleCommentSubmit = async () => {
@@ -36,7 +36,7 @@ const CommentsModal = ({ visible, onClose, postId, user }) => {
       username: user.username || 'username',
       profileImage: user.profileImage || 'https://via.placeholder.com/150',
       comment: newComment,
-      timestamp: new Date(), // Timestamps for Firestore
+      timestamp: new Date(),
       likes: 0,
       replies: 0,
       repliedBy: [],
@@ -48,8 +48,7 @@ const CommentsModal = ({ visible, onClose, postId, user }) => {
         comments: arrayUnion(newCommentData),
         commentsCount: (await getDoc(doc(firestore, 'posts', postId))).data().commentsCount + 1,
       });
-      // Yorumları anında güncelle
-      setComments(prevComments => [newCommentData, ...prevComments]); 
+      setComments(prevComments => [newCommentData, ...prevComments]);
       setNewComment('');
     } catch (error) {
       console.error('Yorum eklenirken hata oluştu:', error);
@@ -58,18 +57,21 @@ const CommentsModal = ({ visible, onClose, postId, user }) => {
   };
 
   const handleCommentDelete = async (comment) => {
-    try {
-      await updateDoc(doc(firestore, 'posts', postId), {
-        commentedBy: arrayRemove(comment),
-        comments: arrayRemove(comment),
-        commentsCount: (await getDoc(doc(firestore, 'posts', postId))).data().commentsCount - 1,
-      });
-      // Yorum silindikten sonra listeyi güncelle
-      setComments(prevComments => prevComments.filter(c => c.comment !== comment.comment)); 
-      Alert.alert('Başarılı', 'Yorum silindi.');
-    } catch (error) {
-      console.error('Yorum silinirken hata oluştu:', error);
-      Alert.alert('Hata', 'Yorum silinirken bir hata oluştu. Lütfen tekrar deneyin.');
+    if (postOwner === user.username || comment.username === user.username) {
+      try {
+        await updateDoc(doc(firestore, 'posts', postId), {
+          commentedBy: arrayRemove(comment),
+          comments: arrayRemove(comment),
+          commentsCount: (await getDoc(doc(firestore, 'posts', postId))).data().commentsCount - 1,
+        });
+        setComments(prevComments => prevComments.filter(c => c.comment !== comment.comment));
+        Alert.alert('Başarılı', 'Yorum silindi.');
+      } catch (error) {
+        console.error('Yorum silinirken hata oluştu:', error);
+        Alert.alert('Hata', 'Yorum silinirken bir hata oluştu. Lütfen tekrar deneyin.');
+      }
+    } else {
+      Alert.alert('Hata', 'Yalnızca kendi yorumlarınızı silebilirsiniz.');
     }
   };
 
@@ -82,8 +84,8 @@ const CommentsModal = ({ visible, onClose, postId, user }) => {
 
       if (postDoc.exists()) {
         const data = postDoc.data();
-        // Yorumları ters sırada ayarlama
         setComments(data.commentedBy || []);
+        setPostOwner(data.owner || ''); // Post sahibini burada alıyoruz
       } else {
         console.error(`Post with ID ${postId} does not exist.`);
         Alert.alert('Hata', 'Bu gönderi mevcut değil.');
@@ -129,7 +131,7 @@ const CommentsModal = ({ visible, onClose, postId, user }) => {
                 <View style={styles.commentContent}>
                   <Text style={styles.commentAuthor}>{item.username}</Text>
                   <Text style={styles.timestamp}>
-                    {formatTimeAgo(item.timestamp)} {/* Tarihi uygun formatta göster */}
+                    {formatTimeAgo(item.timestamp)}
                   </Text>
                   <Text style={styles.commentText}>{item.comment}</Text>
                   <View style={styles.commentActions}>
