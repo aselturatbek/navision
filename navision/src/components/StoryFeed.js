@@ -49,6 +49,14 @@ const StoryFeed = ({ handleStoryPress }) => {
       />
     </TouchableOpacity>
   );
+  const renderAddIcon = () => (
+    <TouchableOpacity
+      style={styles.storyItem}
+      onPress={() => navigation.navigate('StoryUpload')}
+    >
+      <AddIcon />
+    </TouchableOpacity>
+  );
 
   return (
     <FlatList

@@ -15,7 +15,7 @@ import LocationIcon from '../assets/icons/LocationIcon';
 import CommentIcon from '../assets/icons/CommentIcon';
 import SendIcon from '../assets/icons/SendIcon';
 import HeartIcon from '../assets/icons/HeartIcon';
-import { getFirestore, collection, getDocs,onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, getDocs,onSnapshot,doc,updateDoc,getDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { Video } from 'expo-av';
 
@@ -45,6 +45,7 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   const firestore = getFirestore();
   const storage = getStorage();
   const scrollX = useRef(new Animated.Value(0)).current;
+  
 
   // Postları dinlemek ve güncellemek için onSnapshot kullanıyoruz.
   const fetchPosts = () => {
@@ -88,6 +89,36 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   useEffect(() => {
     fetchPosts();
   }, []);
+  const handleLike = async (postId) => {
+    const currentUser = user.username; // Kullanıcı adını al
+    const postRef = doc(firestore, 'posts', postId);
+  
+    const postDoc = await getDoc(postRef);
+    const postData = postDoc.data();
+    const likedBy = postData.likedBy || [];
+  
+    const isLiked = likedBy.includes(currentUser); // Kullanıcının beğenip beğenmediğini kontrol et
+  
+    // Beğeniyi güncelle
+    let updatedLikedBy;
+    if (isLiked) {
+      updatedLikedBy = likedBy.filter(username => username !== currentUser);
+    } else {
+      updatedLikedBy = [...likedBy, currentUser];
+    }
+  
+    await updateDoc(postRef, {
+      likedBy: updatedLikedBy,
+      likes: updatedLikedBy.length,
+    });
+  
+    // Postları güncelleyin
+    setPosts(prevPosts => 
+      prevPosts.map(post => 
+        post.id === postId ? { ...post, isLiked: !isLiked } : post
+      )
+    );
+  };
   const renderMediaItem = ({ item }) => {
     if (!item || !item.uri) return null; // Hatalı item varsa döndürme
   
@@ -178,7 +209,7 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
             <LocationIcon />
             <View style={styles.locationContainer}>
               <Text style={styles.location}>
-                {`${item.location?.city || ''}, ${item.location?.country || ''}`}
+                biseyler biseyler biseyler biseyler
               </Text>
             </View>
           </View>
@@ -200,9 +231,9 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
         </View>
   
         <View style={styles.iconRow}>
-          <TouchableOpacity style={styles.button}>
-            <HeartIcon />
-            <Text style={styles.countText}>{item.likes}</Text>
+        <TouchableOpacity style={styles.button} onPress={() => handleLike(item.id)}>
+        <HeartIcon color={item.likedBy?.includes(user.username) ? 'red' : 'white'} />
+        <Text style={styles.countText}>{item.likes}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={handleCommentPress}>
             <CommentIcon />
@@ -320,6 +351,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#fff',
     fontFamily: 'ms-bold',
+    
   },
   authorRow: {
     flexDirection: 'row',
@@ -345,7 +377,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   postDescription: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#fff',
     marginTop: -3,
     marginLeft: 32,
@@ -370,6 +402,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
     marginBottom:20,
+    marginTop:20,
     // shadow
     shadowColor: '#fff', 
     shadowOffset: { width: 0, height: 4 }, 
