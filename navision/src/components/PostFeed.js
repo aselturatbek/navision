@@ -194,9 +194,9 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
       <View style={styles.mediaWrapper}>
-        {item.mediaUrls && item.mediaUrls.length > 1
-          ? renderCarousel(item.mediaUrls)
-          : renderMediaItem({ item: item.mediaUrls?.[0] })}
+      {Array.isArray(item.mediaUrls) && item.mediaUrls.length > 1
+        ? renderCarousel(item.mediaUrls)
+        : renderMediaItem({ item: item.mediaUrls?.[0] })}
       </View>
   
       <TouchableOpacity style={styles.saveIconContainer}>
@@ -209,7 +209,7 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
             <LocationIcon />
             <View style={styles.locationContainer}>
               <Text style={styles.location}>
-                biseyler biseyler biseyler biseyler
+              {`${item.location?.city || ''}, ${item.location?.country || ''}`}
               </Text>
             </View>
           </View>
@@ -235,9 +235,9 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
         <HeartIcon color={item.likedBy?.includes(user.username) ? 'red' : 'white'} />
         <Text style={styles.countText}>{item.likes}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={handleCommentPress}>
+          <TouchableOpacity style={styles.button} onPress={() => handleCommentPress(item.id)}>
             <CommentIcon />
-            <Text style={styles.countText}>{item.comments}</Text>
+            <Text style={styles.countText}>{item.commentsCount}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={handleSharePress}>
             <SendIcon />

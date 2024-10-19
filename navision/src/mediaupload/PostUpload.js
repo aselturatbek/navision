@@ -155,7 +155,7 @@ const PostUpload = ({ navigation }) => {
         mediaType: uploadedMediaUrls.length > 1 ? 'carousel' : uploadedMediaUrls[0].type,
         timestamp: serverTimestamp(),
         likes: 0,
-        comments: 0,
+        commentsCount: 0,
         shares: 0,
         saves: 0,
         likedBy: [],
