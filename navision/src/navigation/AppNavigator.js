@@ -7,7 +7,7 @@ import LoginScreen from '../entry/LoginScreen';
 import RegisterScreen from '../entry/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
-import MessageScreen from '../screens/MessageScreen';
+import DefaultScreen from '../screens/DefaultScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SideMenu from '../components/SideMenu';
 import EditProfile from '../components/EditProfile';
@@ -26,6 +26,8 @@ import StoryUpload from '../mediaupload/StoryUpload';
 import PostUpload from '../mediaupload/PostUpload';
 import WelcomeScreen from '../entry/WelcomeScreen';
 import SplashScreen from '../entry/SplashScreen';
+import MessageScreen from '../screens/MessageScreen';
+import { useNavigation } from '@react-navigation/native';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -63,7 +65,8 @@ const fetchCurrentUser = async (setCurrentUser) => {
   }
 };
 
-const Header = ({ onMenuPress, user }) => {
+const Header = ({ onMenuPress, user}) => {
+  const navigation = useNavigation();
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 18, backgroundColor: 'transparent', marginTop: 30 }}>
       <TouchableOpacity onPress={onMenuPress}>
@@ -75,7 +78,7 @@ const Header = ({ onMenuPress, user }) => {
         <TouchableOpacity style={{ marginRight: 5, marginBottom: -15 }}>
           <NotificationIcon size={25} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity style={{ marginRight: 16 }}>
+        <TouchableOpacity style={{ marginRight: 16 }} >
           <MessageIcon size={25} color="black" />
         </TouchableOpacity>
         <Image 
@@ -168,14 +171,14 @@ const HomeTabs = ({ route, navigation }) => {
             tabBarIcon: ({ color, focused }) => <PlusIcon color={focused ? "black" : color} />
           }}
         />
-        <Tab.Screen 
-          name="Messages" 
-          component={MessageScreen} 
-          options={{ 
-            tabBarLabel: () => null,
-            tabBarIcon: ({ color, focused }) => <GridIcon size={25} color={focused ? "black" : color} />
-          }} 
-        />
+          <Tab.Screen 
+            name="Default" 
+            component={DefaultScreen} 
+            options={{ 
+              tabBarLabel: () => null,
+              tabBarIcon: ({ color, focused }) => <GridIcon size={25} color={focused ? "black" : color} />
+            }} 
+          />
         <Tab.Screen 
           name="Profile" 
           component={ProfileScreen}
@@ -223,6 +226,7 @@ const AppNavigator = () => {
         <Stack.Screen name="HomeTabs" component={HomeTabs} options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="EditProfile" component={EditProfile} options={{ headerShown: false }} />
         <Stack.Screen name="StoryUpload" component={StoryUpload} options={{ headerShown: false }} />
+        {/* <Stack.Screen name="MessageScreen" component={MessageScreen} options={{ headerShown: false }} /> */}
       </Stack.Navigator>
     </NavigationContainer>
   );
