@@ -29,12 +29,12 @@ const timeAgo = (timestamp) => {
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
 
   if (diffInHours < 1) {
-    return `${Math.floor(diffInMs / (1000 * 60))}dk önce`;
+    return `${Math.floor(diffInMs / (1000 * 60))}dk`;
   } else if (diffInHours < 24) {
-    return `${diffInHours}sa önce`;
+    return `${diffInHours}sa`;
   } else {
     const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}g önce`;
+    return `${diffInDays}gün`;
   }
 };
 
@@ -368,7 +368,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#fff',
     fontFamily:'ms-bold',
-    marginLeft:2
+    marginLeft:2,
+    
   },
   timestampText: {
     fontSize: 10,
