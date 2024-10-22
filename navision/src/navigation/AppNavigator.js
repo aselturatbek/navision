@@ -25,7 +25,7 @@ import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import StoryUpload from '../mediaupload/StoryUpload';
 import PostUpload from '../mediaupload/PostUpload';
 import WelcomeScreen from '../entry/WelcomeScreen';
-
+import SplashScreen from '../entry/SplashScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -216,6 +216,7 @@ const AppNavigator = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator>
+        <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false}} />
         <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />

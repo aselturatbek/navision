@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { View, TextInput, Alert, StyleSheet, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
-import PhoneInput from 'react-native-phone-number-input';
 import { auth } from '../firebase'; 
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { getFirestore, doc, setDoc , getDocs, collection} from 'firebase/firestore'; 
 import { getDatabase, ref, set } from 'firebase/database'; 
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons'; 
+import PhoneInput from 'react-native-phone-number-input';
+import { TextInputMask } from 'react-native-masked-text';
 
 const RegisterScreen = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -22,36 +23,63 @@ const RegisterScreen = () => {
   const [gender, setGender] = useState('');
   const firestore = getFirestore(); 
   const database = getDatabase(); 
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [selectedGender, setSelectedGender] = useState({ erkek: false, kadın: false, diğer: false }); // Checkbox durumları
 
-  const nameInputRef = useRef(null);
-  const phoneInputRef = useRef(null);
-  const dobInputRef = useRef(null);
-  const genderInputRef = useRef(null);
-  const usernameInputRef = useRef(null);
-  const emailInputRef = useRef(null);
-  const passwordInputRef = useRef(null);
-  const confirmPasswordInputRef = useRef(null);
-
+  const handleGenderChange = (type) => {
+    const newSelectedGender = { erkek: false, kadın: false, diğer: false };
+    newSelectedGender[type] = !selectedGender[type];
+    setSelectedGender(newSelectedGender);
+    setGender(type); // Seçilen cinsiyet state'ini güncelle
+    setDropdownVisible(false);
+  };
   const checkUsernameExists = async (username) => {
     const snapshot = await getDocs(collection(firestore, 'userInfo'));
     return snapshot.docs.some(doc => doc.data().username === username);
+  }
+
+  const handleDropdownToggle = () => {
+    setDropdownVisible(!dropdownVisible); // Dropdown'u aç/kapa
   };
 
+  const renderGenderOptions = () => (
+    <View style={styles.dropdownOptions}>
+      <TouchableOpacity style={styles.option} onPress={() => handleGenderChange('erkek')}>
+        <View style={styles.checkboxContainer}>
+          {selectedGender.erkek && <Icon name="checkmark" size={20} color="#007BFF" />}
+        </View>
+        <Text style={styles.optionText}>erkek</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.option} onPress={() => handleGenderChange('kadın')}>
+        <View style={styles.checkboxContainer}>
+          {selectedGender.kadın && <Icon name="checkmark" size={20} color="#007BFF" />}
+        </View>
+        <Text style={styles.optionText}>kadın</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.option} onPress={() => handleGenderChange('diğer')}>
+        <View style={styles.checkboxContainer}>
+          {selectedGender.diğer && <Icon name="checkmark" size={14} color="#007BFF" />}
+        </View>
+        <Text style={styles.optionText}>diğer</Text>
+      </TouchableOpacity>
+    </View>
+  );
   const isEmailValid = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
-
   const isPasswordValid = (password) => {
-    const re = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()\-_=+{}[\]:;"'<>,.?/~`|\\])[A-Za-z\d!@#$%^&*()\-_=+{}[\]:;"'<>,.?/~`|\\]{8,}$/;
+    const re = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()\-_=+{}[\]:;"'<>,.?/~|\\])[A-Za-z\d!@#$%^&*()\-_=+{}[\]:;"'<>,.?/~|\\]{8,}$/;
     return re.test(password);
   };
+  
 
-  const handleNextStep = () => {
-    if (currentStep < 3) setCurrentStep(currentStep + 1);
-    else registerUser(); 
-  };
 
+  const phoneInputRef = useRef(null);
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
+  const confirmPasswordInputRef = useRef(null);
+  
   const registerUser = async () => {
     try {
       if (!isEmailValid(email)) {
@@ -89,18 +117,7 @@ const RegisterScreen = () => {
           profileImage:''
         });
 
-        // Realtime Database'de kullanıcı bilgilerini kaydet
-        await set(ref(database, `users/${userId}`), {
-          username: username,
-          phoneNumber: phoneNumber,
-          email: email,
-          name: name,
-          surname: surname,
-          dateOfBirth: dateOfBirth,
-          gender: gender,
-          biography:'',
-          profileImage:''
-        });
+        
 
         // Başarılı mesajı göster ve sonra 3. adımı göster
         Alert.alert("Başarılı", "Kayıt başarılı! E-posta doğrulama linki gönderildi.");
@@ -118,6 +135,11 @@ const RegisterScreen = () => {
     }
   };
 
+  const handleNextStep = () => {
+    if (currentStep < 3) setCurrentStep(currentStep + 1);
+    else registerUser(); 
+  };
+
   const renderStepIndicator = () => (
     <View style={styles.stepIndicator}>
       {[1, 2, 3].map((step, index) => (
@@ -125,8 +147,10 @@ const RegisterScreen = () => {
           <View
             style={[styles.circle, { 
               backgroundColor: currentStep >= step ? '#007BFF' : '#ddd',
-              width: currentStep === step ? null : 35,
-              height: currentStep === step ? null : 30,
+              borderColor: currentStep >= step ? '#007BFF' : '#007BFF',
+              borderWidth: currentStep >= step ? 1 : 1,
+              width: currentStep === step ? null: 35,
+              height: currentStep === step ? 30 : 30,
               paddingHorizontal: currentStep === step ? 10 : 0,
               justifyContent: currentStep === step ? 'center' : 'center',
             }]}
@@ -141,12 +165,12 @@ const RegisterScreen = () => {
               <Text style={styles.stepText}>{step}</Text>
             )}
           </View>
-          {/* Sadece son adımdan önce mavi çizgi koyuyoruz */}
           {index < 2 && <View style={styles.stepLine} />}
         </React.Fragment>
       ))}
     </View>
   );
+
   const renderContent = () => {
     switch (currentStep) {
       case 1:
@@ -165,46 +189,48 @@ const RegisterScreen = () => {
               value={name}
               onChangeText={setName}
               returnKeyType="next"
-              onSubmitEditing={() => phoneInputRef.current.focus()}
-              blurOnSubmit={false}
+              blurOnSubmit={true}
             />
             <Text style={styles.labelText}>Telefon Numarası</Text>
-            <TextInput
-              style={styles.input}
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
+            <PhoneInput
+              codeTextStyle={{ fontFamily: 'ms-regular', color: 'black',fontSize:14 }} 
+              textInputProps={{ style: { fontFamily: 'ms-regular'} }} 
+              containerStyle={styles.phoneInputContainer}  
+              textContainerStyle={styles.phoneInputTextContainer}  
               ref={phoneInputRef}
-              returnKeyType="next"
-              onSubmitEditing={() => dobInputRef.current.focus()}
-              blurOnSubmit={false}
+              defaultValue={phoneNumber}
+              defaultCode="TR" // Türkiye kodu +90
+              layout="second"
+              returnKeyType="done"
+              onChangeText={setPhoneNumber}
+              countryPickerProps={{ withAlphaFilter: true }}
             />
-          <View style={styles.rowContainer}>
-            <View style={{ flex: 1, marginRight: 10 }}>
-              <Text style={styles.labelText}>Doğum Günü</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="gg.aa.yyyy"
-                value={dateOfBirth}
-                onChangeText={setDateOfBirth}
-                ref={dobInputRef}
-                returnKeyType="next"
-                onSubmitEditing={() => genderInputRef.current.focus()}
-                blurOnSubmit={false}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.labelTextGender}>Cinsiyet</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Erkek, Kadın, Diğer"
-                value={gender}
-                onChangeText={setGender}
-                ref={genderInputRef}
-                returnKeyType="done"
-              />
-            </View>
-          </View>
+            <View style={styles.rowContainer}>
+              <View style={{ flex: 1, marginRight: 10 }}>
+                <Text style={styles.labelText}>Doğum Günü</Text>
+                <TextInputMask
+                  type={'datetime'}
+                  options={{
+                    format: 'DD/MM/YYYY',
+                  }}
+                  style={styles.input}
+                  placeholder="gg/aa/yyyy"
+                  value={dateOfBirth}
+                  onChangeText={setDateOfBirth}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.labelTextGender}>Cinsiyet</Text>
+                <TouchableOpacity style={styles.input} onPress={handleDropdownToggle}>
+                <Text style={styles.dropdownText}>{gender ? gender : 'Cinsiyet Seçiniz'}</Text>
+                <Icon style= {styles.dropdownIcon} name={dropdownVisible ? 'chevron-up' : 'chevron-down'} size={20} color="#007BFF" />
+              </TouchableOpacity>
 
+              {dropdownVisible && renderGenderOptions()}
+              </View>
+            </View>
             <TouchableOpacity style={styles.button} onPress={handleNextStep}>
               <Text style={styles.buttonText}>Devam et</Text>
             </TouchableOpacity>
@@ -233,7 +259,6 @@ const RegisterScreen = () => {
               placeholder="username"
               value={username}
               onChangeText={setUsername}
-              ref={usernameInputRef}
               returnKeyType="next"
               onSubmitEditing={() => emailInputRef.current.focus()}
               blurOnSubmit={false}
@@ -246,6 +271,7 @@ const RegisterScreen = () => {
               onChangeText={setEmail}
               ref={emailInputRef}
               returnKeyType="next"
+              keyboardType="email-address"  // E-posta için klavye tipi
               onSubmitEditing={() => passwordInputRef.current.focus()}
               blurOnSubmit={false}
             />
@@ -256,9 +282,8 @@ const RegisterScreen = () => {
               secureTextEntry
               value={password}
               onChangeText={setPassword}
-              ref={passwordInputRef}
-              returnKeyType="next"
-              onSubmitEditing={() => confirmPasswordInputRef.current.focus()}
+              returnKeyType="done"
+              
               blurOnSubmit={false}
             />
             <Text style={styles.labelText}>Şifre Onayla</Text>
@@ -268,7 +293,6 @@ const RegisterScreen = () => {
               secureTextEntry
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              ref={confirmPasswordInputRef}
               returnKeyType="done"
               onSubmitEditing={registerUser}
             />
@@ -316,8 +340,7 @@ const RegisterScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor:'transparent',
-    
+    backgroundColor: 'transparent',
   },
   scrollContainer: {
     flexGrow: 1,
@@ -325,27 +348,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize:32,
+    fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 20,
-    marginTop:50,
-    fontFamily:'ms-bold'
+    marginTop: 50,
+    fontFamily: 'ms-bold',
   },
   title2: {
     fontSize: 30,
     textAlign: 'center',
     marginBottom: 20,
-    fontFamily:'ms-light'
+    fontFamily: 'ms-light',
   },
-  labelText:{
-    fontFamily:'ms-bold',
-    marginBottom:8
+  labelText: {
+    fontFamily: 'ms-bold',
+    marginBottom: 8,
   },
-  labelTextGender:{
-    fontFamily:'ms-bold',
-    marginBottom:8,
-    marginLeft:1,
+  labelTextGender: {
+    fontFamily: 'ms-bold',
+    marginBottom: 8,
+    marginLeft: 1,
   },
   input: {
     height: 40,
@@ -354,17 +377,82 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 15,
-    fontFamily:'ms-regular'
+    fontFamily: 'ms-regular',
   },
   phoneInputContainer: {
-    height: 40,  
     borderColor: '#ddd',
-    borderWidth: 1,  
+    backgroundColor:'transparent',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 15,
+    height: 44,
+    width:330,
+  },
+  phoneInputTextContainer: {
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    fontSize:22,
+    height: 70,
+    marginTop:-14,
+    fontFamily:'ms-regular'
+  },
+  dropdown: {
+    borderColor: '#ddd',
+    backgroundColor:'#fff',
+    borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 10,
+    paddingVertical: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 15,
+    zIndex:1000
+  },
+  dropdownIcon:{
+    alignSelf:'flex-end',
+    position:'absolute',
+    bottom:7,
+    right:5
+
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: '#000',
+    fontFamily:'ms-regular',
+    alignSelf:'flex-start',
+    marginTop:10
+  },
+  dropdownOptions: {
+    position: 'absolute',
+    top: 70, // Dropdown'un konumunu ayarla
+    width: '100%',
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: '#fff',
+    zIndex:1000,
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    zIndex:1000
+  },
+  checkboxContainer: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#007BFF',
+    borderRadius:5,
     justifyContent: 'center',
-    backgroundColor: 'transparent',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  optionText: {
+    fontSize: 14,
+    fontFamily:'ms-regular'
   },
   rowContainer: {
     flexDirection: 'row',
@@ -378,13 +466,14 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
     marginTop: 5,
-    height:50
+    height: 50,
+    zIndex:-1
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily:'ms-bold'
+    fontFamily: 'ms-bold',
   },
   stepIndicator: {
     flexDirection: 'row',
@@ -400,10 +489,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
   },
   stepLine: {
-    width: 70,  // Çizginin genişliği, kutular arasındaki boşluğa göre ayarla
-    height: 4,  // Çizginin kalınlığı
-    backgroundColor: '#007BFF',  // Çizginin rengi (mavi)
-    borderRadius: 2,  // Çizginin uçlarının yuvarlak olması için
+    width: 60,
+    height: 1,
+    backgroundColor: '#007BFF',
+    borderRadius: 2,
   },
   stepText: {
     fontSize: 16,
@@ -428,6 +517,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
+    zIndex:-1
   },
   alreadyHaveAccount: {
     fontSize: 14,
