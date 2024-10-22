@@ -6,28 +6,34 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false); // Yükleme durumu
   const auth = getAuth();
 
   const handleLogin = async () => {
+    setLoading(true); // Yükleme başlat
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       if (!user.emailVerified) {
         Alert.alert('Hata', 'Lütfen e-posta adresinizi doğrulayın.');
+        setLoading(false); // Yüklemeyi durdur
         return;
       }
 
       Alert.alert('Giriş Başarılı', 'Hoş Geldin!');
+      setLoading(false); // Yüklemeyi durdur
       navigation.replace('HomeTabs');
     } catch (error) {
       Alert.alert('Hata', error.message);
+      setLoading(false); // Yüklemeyi durdur
     }
   };
 
@@ -77,8 +83,12 @@ const LoginScreen = ({ navigation }) => {
         />
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Giriş Yap</Text>
+      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Giriş Yap</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={handleForgotPassword}>

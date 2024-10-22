@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, TextInput, Alert, StyleSheet, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TextInput, Alert, StyleSheet, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, ActivityIndicator,Platform } from 'react-native';
 import { auth } from '../firebase'; 
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { getFirestore, doc, setDoc , getDocs, collection} from 'firebase/firestore'; 
@@ -25,6 +25,9 @@ const RegisterScreen = () => {
   const database = getDatabase(); 
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [selectedGender, setSelectedGender] = useState({ erkek: false, kadın: false, diğer: false }); // Checkbox durumları
+  const [loading, setLoading] = useState(false); 
+  const [formattedPhoneNumber, setFormattedPhoneNumber] = useState(''); // Formatted phone number state
+  
 
   const handleGenderChange = (type) => {
     const newSelectedGender = { erkek: false, kadın: false, diğer: false };
@@ -81,59 +84,76 @@ const RegisterScreen = () => {
   const confirmPasswordInputRef = useRef(null);
   
   const registerUser = async () => {
-    try {
-      if (!isEmailValid(email)) {
-        Alert.alert("Hata", "Lütfen geçerli bir e-posta adresi girin.");
-        return;
-      }
-
-      if (!isPasswordValid(password)) {
-        Alert.alert("Hata", "Şifre en az 8 karakter, 1 büyük harf, 1 rakam ve 1 özel karakter içermelidir.");
-        return;
-      }
-
-      const usernameExists = await checkUsernameExists(username);
-      if (usernameExists) {
-        Alert.alert("Hata", "Bu kullanıcı adı zaten alınmış.");
-        return;
-      }
-
-      if (password === confirmPassword) {
-        const newUser = await createUserWithEmailAndPassword(auth, email, password);
-        await sendEmailVerification(newUser.user);
-        
-        const userId = newUser.user.uid;
-
-        // Firestore'da kullanıcı bilgilerini kaydet
-        await setDoc(doc(firestore, 'userInfo', userId), {
-          username: username,
-          phoneNumber: phoneNumber,
-          email: email,
-          name: name,
-          surname: surname,
-          dateOfBirth: dateOfBirth,
-          gender: gender,
-          biography:'',
-          profileImage:''
-        });
-
-        
-
-        // Başarılı mesajı göster ve sonra 3. adımı göster
-        Alert.alert("Başarılı", "Kayıt başarılı! E-posta doğrulama linki gönderildi.");
-        setCurrentStep(3);
-
-        // 2 saniye sonra kullanıcıyı login ekranına yönlendir
-        setTimeout(() => {
-          navigation.navigate('Login');
-        }, 2000); // 2 saniye bekleme süresi
-      } else {
-        Alert.alert("Hata", "Şifreler uyuşmuyor.");
-      }
-    } catch (error) {
-      Alert.alert("Hata", error.message);
+  setLoading(true);
+  try {
+    // Tüm alanların dolu olup olmadığını kontrol et
+    if (!name || !phoneNumber || !dateOfBirth || !gender) {
+      Alert.alert("Hata", "Lütfen tüm bilgileri doldurduğunuzdan emin olun.");
+      setLoading(false);
+      return;
     }
-  };
+
+    // Email doğrulama
+    if (!isEmailValid(email)) {
+      Alert.alert("Hata", "Lütfen geçerli bir e-posta adresi girin.");
+      setLoading(false);
+      return;
+    }
+
+    // Şifre doğrulama
+    if (!isPasswordValid(password)) {
+      Alert.alert("Hata", "Şifre en az 8 karakter, 1 büyük harf, 1 rakam ve 1 özel karakter içermelidir.");
+      setLoading(false);
+      return;
+    }
+
+    // Şifre eşleşmesi kontrolü
+    if (password !== confirmPassword) {
+      Alert.alert("Hata", "Şifreler uyuşmuyor.");
+      setLoading(false);
+      return;
+    }
+
+    // Kullanıcı adı kontrolü
+    const usernameExists = await checkUsernameExists(username);
+    if (usernameExists) {
+      Alert.alert("Hata", "Bu kullanıcı adı zaten alınmış.");
+      setLoading(false);
+      return;
+    }
+
+    // Tüm kontroller doğruysa kullanıcıyı kaydet
+    const newUser = await createUserWithEmailAndPassword(auth, email, password);
+    await sendEmailVerification(newUser.user);
+
+    const userId = newUser.user.uid;
+
+    // Firestore'da kullanıcı bilgilerini kaydet
+    await setDoc(doc(firestore, 'userInfo', userId), {
+      username: username,
+      phoneNumber: phoneNumber,
+      email: email,
+      name: name,
+      surname: surname,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
+      biography: '',
+      profileImage: ''
+    });
+
+    Alert.alert("Başarılı", "Kayıt başarılı! E-posta doğrulama linki gönderildi.");
+    setCurrentStep(3);
+
+    // Kullanıcıyı login ekranına yönlendir
+    setTimeout(() => {
+      navigation.navigate('Login');
+    }, 2000);
+
+  } catch (error) {
+    Alert.alert("Hata", error.message);
+  }
+};
+
 
   const handleNextStep = () => {
     if (currentStep < 3) setCurrentStep(currentStep + 1);
@@ -203,7 +223,9 @@ const RegisterScreen = () => {
               layout="second"
               returnKeyType="done"
               onChangeText={setPhoneNumber}
+              onChangeFormattedText={setFormattedPhoneNumber} // Telefon formatı burada güncelleniyor
               countryPickerProps={{ withAlphaFilter: true }}
+              placeholder={formattedPhoneNumber ? `Numaranızı giriniz` : 'Numaranız'}
             />
             <View style={styles.rowContainer}>
               <View style={{ flex: 1, marginRight: 10 }}>
@@ -294,16 +316,19 @@ const RegisterScreen = () => {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               returnKeyType="done"
-              onSubmitEditing={registerUser}
             />
-            <TouchableOpacity style={styles.button} onPress={registerUser}>
-              <Text style={styles.buttonText}>Kayıt Ol</Text>
+            <TouchableOpacity style={styles.button} onPress={registerUser} disabled={loading}>
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Giriş Yap</Text>
+              )}
             </TouchableOpacity>
 
             <View style={styles.loginContainer}>
               <Text style={styles.alreadyHaveAccount}>Hesabın zaten var mı? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.loginText}>Giriş Yap</Text>
+                <Text style={styles.loginText}>Kayıt Ol</Text>
               </TouchableOpacity>
             </View>
           </View>
