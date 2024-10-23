@@ -117,6 +117,7 @@ const HomeScreen = () => {
     <RefreshComponent refreshing={refreshing} onRefreshAction={onRefresh}>
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
+          
           {/* Stories */}
           <StoryFeed groupedStories={groupedStories} handleStoryPress={handleStoryPress} />
           <StoryModal visible={isStoryModalVisible} onClose={() => setIsStoryModalVisible(false)} stories={currentUserStories} />
@@ -143,7 +144,7 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: 'white',
   },
 });
 

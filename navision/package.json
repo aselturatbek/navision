@@ -31,6 +31,7 @@
     "react-native-checkbox-group": "^1.0.3",
     "react-native-date-picker": "^5.0.7",
     "react-native-fast-image": "^8.6.3",
+    "react-native-floating-action": "^1.22.0",
     "react-native-gesture-handler": "~2.16.1",
     "react-native-image-crop-picker": "^0.41.4",
     "react-native-image-picker": "^7.1.2",
