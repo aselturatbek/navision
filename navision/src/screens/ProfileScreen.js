@@ -1,14 +1,74 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+//firebase
 import { auth } from '../firebase';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { getFirestore, doc, getDoc ,onSnapshot} from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+//icons
+import Icon from 'react-native-vector-icons/Ionicons';
+//components
+import TopNavigation from '../components/TopNavigation';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const [userInfo, setUserInfo] = useState(null);
   const firestore = getFirestore();
+  //top navigation
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const loadFonts = async () => {
+    await Font.loadAsync({
+      'ms-regular': require('../assets/fonts/ms-regular.ttf'),
+      'ms-bold': require('../assets/fonts/ms-bold.ttf'),
+      'ms-light': require('../assets/fonts/ms-light.ttf'),
+      'ms-italic': require('../assets/fonts/ms-italic.ttf'),
+    });
+  };
+
+  const fetchCurrentUser = async (user) => {
+    const db = getFirestore();
+    const userRef = doc(db, 'userInfo', user.uid);
+
+    const unsubscribe = onSnapshot(userRef, (doc) => {
+      if (doc.exists()) {
+        const userData = doc.data();
+        setCurrentUser({
+          uid: user.uid,
+          email: user.email,
+          profileImage: userData.profileImage || 'https://via.placeholder.com/150',
+          displayName: userData.username || user.email.split('@')[0],
+        });
+      } else {
+        setCurrentUser(null);
+      }
+    }, (error) => {
+      console.error("Error fetching user data:", error);
+      setCurrentUser(null);
+    });
+
+    return unsubscribe;
+  };
+
+  const toggleMenu = () => {
+    setMenuVisible((prevMenuVisible) => !prevMenuVisible);
+  };
+  useEffect(() => {
+    loadFonts().then(() => setFontsLoaded(true));
+
+    const auth = getAuth();
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        fetchCurrentUser(user);
+      } else {
+        setCurrentUser(null);
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, []);
 
   const fetchUserInfo = async () => {
     const userId = auth.currentUser.uid; // Giriş yapan kullanıcının ID'si
@@ -40,6 +100,7 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
+      <TopNavigation onMenuPress={toggleMenu} user={currentUser} />
       <View style={styles.header}>
         <View style={styles.userInfo}>
           <Image

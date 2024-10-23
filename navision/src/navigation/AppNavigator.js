@@ -14,6 +14,7 @@ import StoryUpload from '../mediaupload/StoryUpload';
 import MessageScreen from '../screens/MessageScreen';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
+import ChatScreen from '../screens/ChatScreen';
 
 const Stack = createStackNavigator();
 
@@ -82,19 +83,18 @@ const AppNavigator = () => {
     );
   }
 
-  // TopNavigation'u sadece giriş yapılmış durumlarda göster
-  const shouldShowTopNavigation = (routeName) => {
-    const nonAuthScreens = ['Splash', 'Welcome', 'Login', 'Register'];
-    return !nonAuthScreens.includes(routeName) && currentUser;
-  };
+  // // TopNavigation'u sadece belirli ekranlarda gizliyoruz
+  // const shouldShowTopNavigation = (routeName) => {
+  //   const hideTopNavScreens = ['Splash', 'Welcome', 'Login', 'Register', 'ChatScreen'];
+  //   return !hideTopNavScreens.includes(routeName); // Bu ekranlar dışında TopNavigation gösterilir
+  // };
 
   return (
     <NavigationContainer>
       <View style={{ flex: 1 }}>
-        {shouldShowTopNavigation && currentUser && (
-          <TopNavigation onMenuPress={toggleMenu} user={currentUser} />
-        )}
-
+        {/* {currentUser && shouldShowTopNavigation(Stack.Navigator) && ( */}
+          {/* <TopNavigation onMenuPress={toggleMenu} user={currentUser} /> */}
+        {/* )} */}
         <Stack.Navigator>
           <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
@@ -108,6 +108,7 @@ const AppNavigator = () => {
           <Stack.Screen name="EditProfile" component={EditProfile} options={{ headerShown: false }} />
           <Stack.Screen name="StoryUpload" component={StoryUpload} options={{ headerShown: false }} />
           <Stack.Screen name="MessageScreen" component={MessageScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="ChatScreen" component={ChatScreen} options={{ headerShown: false }} />
         </Stack.Navigator>
       </View>
     </NavigationContainer>
