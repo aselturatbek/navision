@@ -1,44 +1,75 @@
-import React from 'react';
-import { View, Text, FlatList, Image, StyleSheet, Dimensions } from 'react-native';
-
-const chats = [
-  { id: '1', name: 'Esther Howard', message: 'Dubai tatili için rota oluşturdu.', time: '01:21', profileImage: 'https://via.placeholder.com/150', unreadMessages: 2 },
-  { id: '2', name: 'Kristin Watson', message: 'Akşam ne yapıyoruz?', time: '01:29', profileImage: 'https://via.placeholder.com/150' },
-  { id: '3', name: 'Yazlık Ailesi', message: 'Ben bu tayfayla kahve içelim ya...', time: '01:40', profileImage: 'https://via.placeholder.com/150', group: true, unreadMessages: 9 },
-  { id: '4', name: 'Andrea Pales', message: 'Güzel fikir Berzan!', time: '01:29', profileImage: 'https://via.placeholder.com/150' },
-  { id: '5', name: 'Aslı Dorukhan', message: 'Tamamdır.', time: '01:29', profileImage: 'https://via.placeholder.com/150' },
-  { id: '6', name: 'Jenny Leo', message: 'Sen de düşünüyorsun bu konu...', time: '01:45', profileImage: 'https://via.placeholder.com/150' },
-];
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, Image, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { db } from '../../firebase'; // Firestore bağlantısı
+import { collection, getDocs } from 'firebase/firestore';
+import { useNavigation } from '@react-navigation/native'; // Navigation
+//components
+// Varsayılan profil resmi URL'si
+const defaultProfileImage = 'https://via.placeholder.com/150';
 
 const ChatItem = ({ item }) => {
+  const navigation = useNavigation();
+
   return (
-    <View>
+    <TouchableOpacity onPress={() => navigation.navigate('ChatScreen', { user: item })}>
       <View style={styles.chatItem}>
-        <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
+        <Image source={{ uri: item.profileImage || defaultProfileImage }} style={styles.profileImage} />
         <View style={styles.chatDetails}>
           <View style={styles.chatHeader}>
-            <Text style={styles.chatName}>{item.name}</Text>
+            <Text style={styles.chatName}>{item.username}</Text>
+            <Text style={styles.chatTime}>{item.time}</Text>
           </View>
           <Text style={styles.chatMessage} numberOfLines={1}>{item.message}</Text>
         </View>
-        <View style={styles.timeBadgeContainer}>
-          <Text style={styles.chatTime}>{item.time}</Text>
-          {item.unreadMessages && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadText}>{item.unreadMessages}</Text>
-            </View>
-          )}
-        </View>
+        {item.unreadMessages > 0 && (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadText}>{item.unreadMessages}</Text>
+          </View>
+        )}
       </View>
       <View style={styles.shortDivider} />
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const ChatsComponent = () => {
+  const [users, setUsers] = useState([]);
+
+  // Firestore'dan kullanıcıları ve sohbet bilgilerini çekme fonksiyonu
+  const fetchUsers = async () => {
+    try {
+      const userCollection = collection(db, 'userInfo'); // Firestore'daki userInfo koleksiyonu
+      const userSnapshot = await getDocs(userCollection);
+      const usersList = [];
+
+      for (const doc of userSnapshot.docs) {
+        const userData = doc.data();
+        
+        let profileImage = userData.profileImage || defaultProfileImage;
+
+        usersList.push({
+          id: doc.id,
+          username: userData.username,
+          profileImage: profileImage,
+          message: userData.message || 'Henüz mesaj yok',
+          time: userData.time || 'N/A',
+          unreadMessages: userData.unreadMessages || 0,
+        });
+      }
+
+      setUsers(usersList);
+    } catch (error) {
+      console.error('Kullanıcılar alınırken hata:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
   return (
     <FlatList
-      data={chats}
+      data={users}
       renderItem={({ item }) => <ChatItem item={item} />}
       keyExtractor={item => item.id}
       showsVerticalScrollIndicator={false}
@@ -81,29 +112,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'black',
   },
-  chatMessage: {
-    fontFamily: 'ms-regular',
-    fontSize: 13,
-    color: '#666',
-  },
-  timeBadgeContainer: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    flexDirection: 'column',
-    marginRight: -20,
-  },
   chatTime: {
     fontFamily: 'ms-regular',
     fontSize: 12,
     color: '#999',
-    marginBottom: 3,
+  },
+  chatMessage: {
+    fontFamily: 'ms-regular',
+    fontSize: 13,
+    color: '#666',
   },
   unreadBadge: {
     backgroundColor: '#007BFF',
     borderRadius: 12,
     paddingVertical: 1,
     paddingHorizontal: 5,
-    marginTop: 3,
+    marginLeft: 10,
   },
   unreadText: {
     color: '#fff',
