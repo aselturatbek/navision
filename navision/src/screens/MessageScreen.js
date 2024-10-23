@@ -1,82 +1,32 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Dimensions } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-
-//icons
-import PlusIcon from '../assets/icons/PlusIcon';
-import SearchIcon from '../assets/icons/SearchIcon'; 
-import ThreeLineIcon from '../assets/icons/ThreeLine'; 
-import ChatMenuIcon from '../assets/icons/ChatMenuIcon';
-const chats = [
-  { id: '1', name: 'Esther Howard', message: 'Dubai tatili için rota oluşturdu.', time: '01:21', profileImage: 'https://via.placeholder.com/150', unreadMessages: 2 },
-  { id: '2', name: 'Kristin Watson', message: 'Akşam ne yapıyoruz?', time: '01:29', profileImage: 'https://via.placeholder.com/150' },
-  { id: '3', name: 'Yazlık Ailesi', message: 'Ben bu tayfayla kahve içelim ya...', time: '01:40', profileImage: 'https://via.placeholder.com/150', group: true, unreadMessages: 9 },
-  { id: '4', name: 'Andrea Pales', message: 'Güzel fikir Berzan!', time: '01:29', profileImage: 'https://via.placeholder.com/150' },
-  { id: '5', name: 'Aslı Dorukhan', message: 'Tamamdır.', time: '01:29', profileImage: 'https://via.placeholder.com/150' },
-  { id: '6', name: 'Jenny Leo', message: 'Sen de düşünüyorsun bu konu...', time: '01:45', profileImage: 'https://via.placeholder.com/150' },
-];
-
-const ChatItem = ({ item }) => {
-  return (
-    <View style={styles.chatItem}>
-      <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
-      <View style={styles.chatDetails}>
-        <View style={styles.chatHeader}>
-          <Text style={styles.chatName}>{item.name}</Text>
-          <Text style={styles.chatTime}>{item.time}</Text>
-        </View>
-        <Text style={styles.chatMessage} numberOfLines={1}>{item.message}</Text>
-      </View>
-      {item.unreadMessages && (
-        <View style={styles.unreadBadge}>
-          <Text style={styles.unreadText}>{item.unreadMessages}</Text>
-        </View>
-      )}
-    </View>
-  );
-};
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated } from 'react-native';
+// icons
+import SearchChatIcon from '../assets/icons/SearchChatIcon';
+import ThreeLineIcon from '../assets/icons/ThreeLine';
+//components
+import MapComponent from '../components/chatscreen/MapComponent';
+import ChatsComponent from '../components/chatscreen/ChatsComponent';
+import FabComponent from '../components/chatscreen/FabComponent';
 
 const MessageScreen = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const animation = useState(new Animated.Value(0))[0];
   return (
     <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: 37.78825,
-          longitude: -122.4324,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}
-      >
-        <Marker
-          coordinate={{
-            latitude: 37.78825,
-            longitude: -122.4324,
-          }}
-          title="Current Location"
-          description="This is where you are"
-        />
-      </MapView>
+      <MapComponent />
       <View style={styles.header}>
         <Text style={styles.title}>Sohbetler</Text>
         <View style={styles.icons}>
-          <TouchableOpacity>
-            <SearchIcon width={24} height={24} style={styles.icon} />
+          <TouchableOpacity style={styles.icon}>
+            <SearchChatIcon />
           </TouchableOpacity>
-          <TouchableOpacity>
-            <ThreeLineIcon width={24} height={24} style={styles.icon} />
+          <TouchableOpacity style={styles.icon}>
+            <ThreeLineIcon  />
           </TouchableOpacity>
         </View>
       </View>
-      <FlatList
-        data={chats}
-        renderItem={({ item }) => <ChatItem item={item} />}
-        keyExtractor={item => item.id}
-        showsVerticalScrollIndicator={false}
-      />
-      <TouchableOpacity style={styles.fab}>
-        <ChatMenuIcon style={styles.fabIcon} />
-      </TouchableOpacity>
+      <ChatsComponent/>
+      <FabComponent/>
     </View>
   );
 };
@@ -87,40 +37,55 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   map: {
-    width: Dimensions.get('window').width,
-    height: 200,
+    width: Dimensions.get('window').width - 40,
+    height: 180,
+    marginHorizontal: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginLeft: 20,
+    marginBottom: 10,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginTop: 10,
+    paddingHorizontal: 27,
+    marginTop: 15,
     marginBottom: 10,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontFamily: 'ms-bold',
     color: 'black',
+    marginBottom: 10,
   },
   icons: {
     flexDirection: 'row',
+    marginHorizontal: 5,
+    justifyContent: 'space-between',
   },
   icon: {
-    marginLeft: 15,
+    marginLeft: 10,
   },
   chatItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 18,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    width: Dimensions.get('window').width - 40,
+    marginLeft: 8,
+  },
+  shortDivider: {
+    height: 1,
+    backgroundColor: '#eee',
+    width: 240,
+    alignSelf: 'center',
+    marginLeft: 25,
   },
   profileImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     marginRight: 15,
   },
   chatDetails: {
@@ -129,38 +94,49 @@ const styles = StyleSheet.create({
   chatHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   chatName: {
     fontFamily: 'ms-bold',
-    fontSize: 16,
-    color: 'black',
-  },
-  chatTime: {
-    fontFamily: 'ms-regular',
     fontSize: 14,
-    color: '#999',
+    color: 'black',
   },
   chatMessage: {
     fontFamily: 'ms-regular',
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
   },
+  timeBadgeContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    marginRight: -20,
+  },
+  chatTime: {
+    fontFamily: 'ms-regular',
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 3,
+  },
   unreadBadge: {
-    backgroundColor: '#ff3b30',
+    backgroundColor: '#007BFF',
     borderRadius: 12,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 1,
+    paddingHorizontal: 5,
+    marginTop: 3,
   },
   unreadText: {
-    color: 'white',
-    fontFamily: 'ms-bold',
-    fontSize: 12,
+    color: '#fff',
+    fontSize: 13,
+    fontFamily: 'ms-regular',
   },
-  fab: {
+  fabContainer: {
     position: 'absolute',
     right: 20,
-    bottom: 30,
+    bottom: 50, // bir tık yukarı alındı
+    alignItems: 'center',
+  },
+  fab: {
     backgroundColor: '#ddd',
     width: 50,
     height: 50,
@@ -168,10 +144,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fabIcon: {
-    width: 25,
-    height: 25,
-    tintColor: 'white',
+  secondaryButton: {
+    position: 'absolute',
+    backgroundColor: '#ddd',
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    
   },
 });
 
