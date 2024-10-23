@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, TextInput } from 'react-native';
 // icons
 import SearchChatIcon from '../assets/icons/SearchChatIcon';
 import ThreeLineIcon from '../assets/icons/ThreeLine';
@@ -9,24 +9,66 @@ import ChatsComponent from '../components/chatscreen/ChatsComponent';
 import FabComponent from '../components/chatscreen/FabComponent';
 
 const MessageScreen = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const animation = useState(new Animated.Value(0))[0];
+  const [searchMode, setSearchMode] = useState(false);  // Arama modu için state
+  const animation = useRef(new Animated.Value(0)).current; // Animasyon değeri
+
+  const toggleSearch = () => {
+    const toValue = searchMode ? 0 : 1; // Arama moduna göre animasyonu tersine çevir
+    Animated.timing(animation, {
+      toValue,
+      duration: 300,
+      useNativeDriver: false, // layout değiştiği için native driver false
+    }).start();
+    setSearchMode(!searchMode); // Arama modunu tersine çevir
+  };
+
+  // Başlık ve arama kutusu için opacity ve genişlik animasyonları
+  const titleOpacity = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+  });
+
+  const searchBarWidth = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
+  const searchInputOpacity = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
   return (
     <View style={styles.container}>
       <MapComponent />
       <View style={styles.header}>
-        <Text style={styles.title}>Sohbetler</Text>
+        {/* Başlık animasyonu */}
+        <Animated.Text style={[styles.title, { opacity: titleOpacity }]}>
+          Sohbetler
+        </Animated.Text>
+
+        {/* Arama inputu animasyonu */}
+        <Animated.View style={[styles.searchContainer, { width: searchBarWidth, opacity: searchInputOpacity }]}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Sohbetlerde ara..."
+            placeholderTextColor="#888"
+          />
+        </Animated.View>
+
+        {/* Arama ve menü butonları */}
         <View style={styles.icons}>
-          <TouchableOpacity style={styles.icon}>
+          <TouchableOpacity style={styles.icon} onPress={toggleSearch}>
             <SearchChatIcon />
           </TouchableOpacity>
           <TouchableOpacity style={styles.icon}>
-            <ThreeLineIcon  />
+            <ThreeLineIcon />
           </TouchableOpacity>
         </View>
       </View>
-      <ChatsComponent/>
-      <FabComponent/>
+
+      <ChatsComponent />
+      <FabComponent />
     </View>
   );
 };
@@ -35,15 +77,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
-  },
-  map: {
-    width: Dimensions.get('window').width - 40,
-    height: 180,
-    marginHorizontal: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginLeft: 20,
-    marginBottom: 10,
   },
   header: {
     flexDirection: 'row',
@@ -59,6 +92,21 @@ const styles = StyleSheet.create({
     color: 'black',
     marginBottom: 10,
   },
+  searchContainer: {
+    position: 'absolute',
+    left: -5,
+    right:0,
+    paddingHorizontal: 27,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    padding: 6,
+    fontSize: 16,
+    fontFamily: 'ms-regular',
+    backgroundColor: '#f5f5f5',
+  },
   icons: {
     flexDirection: 'row',
     marginHorizontal: 5,
@@ -66,93 +114,6 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginLeft: 10,
-  },
-  chatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    width: Dimensions.get('window').width - 40,
-    marginLeft: 8,
-  },
-  shortDivider: {
-    height: 1,
-    backgroundColor: '#eee',
-    width: 240,
-    alignSelf: 'center',
-    marginLeft: 25,
-  },
-  profileImage: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    marginRight: 15,
-  },
-  chatDetails: {
-    flex: 1,
-  },
-  chatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  chatName: {
-    fontFamily: 'ms-bold',
-    fontSize: 14,
-    color: 'black',
-  },
-  chatMessage: {
-    fontFamily: 'ms-regular',
-    fontSize: 13,
-    color: '#666',
-  },
-  timeBadgeContainer: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    flexDirection: 'column',
-    marginRight: -20,
-  },
-  chatTime: {
-    fontFamily: 'ms-regular',
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 3,
-  },
-  unreadBadge: {
-    backgroundColor: '#007BFF',
-    borderRadius: 12,
-    paddingVertical: 1,
-    paddingHorizontal: 5,
-    marginTop: 3,
-  },
-  unreadText: {
-    color: '#fff',
-    fontSize: 13,
-    fontFamily: 'ms-regular',
-  },
-  fabContainer: {
-    position: 'absolute',
-    right: 20,
-    bottom: 50, // bir tık yukarı alındı
-    alignItems: 'center',
-  },
-  fab: {
-    backgroundColor: '#ddd',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  secondaryButton: {
-    position: 'absolute',
-    backgroundColor: '#ddd',
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    
   },
 });
 
