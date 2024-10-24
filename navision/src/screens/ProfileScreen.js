@@ -158,7 +158,7 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: 'white',
   },
   header: {
     padding: 20,
@@ -178,9 +178,9 @@ const styles = StyleSheet.create({
   editButton: {
     position: 'absolute',
     top: 55,
-    right: 40,
-    backgroundColor: '#f0f0f0',
-    padding: 5,
+    right: 50,
+    backgroundColor: '#fff',
+    padding: 7,
     borderRadius: 20,
   },
   username: {
@@ -232,21 +232,21 @@ const styles = StyleSheet.create({
 
   },
   followButton: {
-    backgroundColor: 'pink',
+    backgroundColor: '#ddd',
     padding: 10,
     borderRadius: 8,
     marginHorizontal: 5,
     width:150
   },
   messageButton: {
-    backgroundColor: 'pink',
+    backgroundColor: '#ddd',
     padding: 10,
     borderRadius: 8,
     marginHorizontal: 5,
     width:150
   },
   moreButton: {
-    backgroundColor: 'pink',
+    backgroundColor: '#ddd',
     padding: 10,
     borderRadius: 8,
     marginHorizontal: 5,

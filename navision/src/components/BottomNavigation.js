@@ -1,10 +1,13 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+//screens
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
 import PostUpload from '../mediaupload/PostUpload';
 import DefaultScreen from '../screens/DefaultScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import Default2 from '../screens/Default2';
+//icons
 import HomeIcon from '../assets/icons/HomeIcon';
 import SearchIcon from '../assets/icons/SearchIcon';
 import PlusIcon from '../assets/icons/PlusIcon';
@@ -56,8 +59,8 @@ const BottomNavigation = ({ username, profileImage, name, surname }) => {
         }} 
       />
       <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen}
+        name="Default2" 
+        component={Default2}
         options={{ 
           tabBarLabel: () => null,
           tabBarIcon: ({ color, focused }) => <BagIcon size={25} color={focused ? "black" : color} /> 

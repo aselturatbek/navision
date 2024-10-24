@@ -3,8 +3,9 @@ import { View, ActivityIndicator } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import * as Font from 'expo-font';
-import TopNavigation from '../components/TopNavigation';
+//components
 import BottomNavigation from '../components/BottomNavigation';
+//screens
 import SplashScreen from '../entry/SplashScreen';
 import WelcomeScreen from '../entry/WelcomeScreen';
 import LoginScreen from '../entry/LoginScreen';
@@ -12,9 +13,12 @@ import RegisterScreen from '../entry/RegisterScreen';
 import EditProfile from '../components/EditProfile';
 import StoryUpload from '../mediaupload/StoryUpload';
 import MessageScreen from '../screens/MessageScreen';
+import ChatScreen from '../screens/ChatScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+//firebase
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
-import ChatScreen from '../screens/ChatScreen';
+
 
 const Stack = createStackNavigator();
 
@@ -109,6 +113,8 @@ const AppNavigator = () => {
           <Stack.Screen name="StoryUpload" component={StoryUpload} options={{ headerShown: false }} />
           <Stack.Screen name="MessageScreen" component={MessageScreen} options={{ headerShown: false }} />
           <Stack.Screen name="ChatScreen" component={ChatScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
+
         </Stack.Navigator>
       </View>
     </NavigationContainer>

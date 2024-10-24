@@ -1,4 +1,4 @@
-import React, {useState,useEffect}from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, Text, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 //expo
@@ -55,6 +55,7 @@ const TopNavigation = ({ onMenuPress, user }) => {
   const toggleMenu = () => {
     setMenuVisible((prevMenuVisible) => !prevMenuVisible);
   };
+
   useEffect(() => {
     loadFonts().then(() => setFontsLoaded(true));
 
@@ -87,10 +88,15 @@ const TopNavigation = ({ onMenuPress, user }) => {
         >
           <MessageIcon size={25} color="black" />
         </TouchableOpacity>
-        <Image 
-          source={{ uri: user?.profileImage || 'https://via.placeholder.com/150' }}
-          style={{ width: 40, height: 40, borderRadius: 20 }}
-        />
+        {/* Profil Fotoğrafı Tıklama */}
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('Profile')}
+        >
+          <Image 
+            source={{ uri: user?.profileImage || 'https://via.placeholder.com/150' }}
+            style={{ width: 40, height: 40, borderRadius: 20 }}
+          />
+        </TouchableOpacity>
       </View>
       {menuVisible && <SideMenu onClose={toggleMenu} />}
     </View>
