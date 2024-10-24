@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Image, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { db } from '../../firebase'; // Firestore bağlantısı
-import { collection, getDocs } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth'; // Oturum açmış kullanıcıyı almak için
+import { query, where, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native'; // Navigation
-//components
+
 // Varsayılan profil resmi URL'si
 const defaultProfileImage = 'https://via.placeholder.com/150';
 
 const ChatItem = ({ item }) => {
   const navigation = useNavigation();
 
+  const handlePress = () => {
+    console.log("Tıklanan kullanıcının userId'si:", item.userId); // userId'yi konsola yazdır
+    navigation.navigate('ChatScreen', { user: item }); // Sonra ChatScreen'e geçiş yap
+  };
+
   return (
-    <TouchableOpacity onPress={() => navigation.navigate('ChatScreen', { user: item })}>
+    <TouchableOpacity onPress={handlePress}>
       <View style={styles.chatItem}>
         <Image source={{ uri: item.profileImage || defaultProfileImage }} style={styles.profileImage} />
         <View style={styles.chatDetails}>
@@ -21,11 +28,6 @@ const ChatItem = ({ item }) => {
           </View>
           <Text style={styles.chatMessage} numberOfLines={1}>{item.message}</Text>
         </View>
-        {item.unreadMessages > 0 && (
-          <View style={styles.unreadBadge}>
-            <Text style={styles.unreadText}>{item.unreadMessages}</Text>
-          </View>
-        )}
       </View>
       <View style={styles.shortDivider} />
     </TouchableOpacity>
@@ -35,34 +37,64 @@ const ChatItem = ({ item }) => {
 const ChatsComponent = () => {
   const [users, setUsers] = useState([]);
 
-  // Firestore'dan kullanıcıları ve sohbet bilgilerini çekme fonksiyonu
+  // Firestore'dan kullanıcıları ve sohbet bilgilerini anlık olarak çekme fonksiyonu
   const fetchUsers = async () => {
     try {
-      const userCollection = collection(db, 'userInfo'); // Firestore'daki userInfo koleksiyonu
-      const userSnapshot = await getDocs(userCollection);
-      const usersList = [];
-
-      for (const doc of userSnapshot.docs) {
-        const userData = doc.data();
-        
-        let profileImage = userData.profileImage || defaultProfileImage;
-
-        usersList.push({
-          id: doc.id,
-          username: userData.username,
-          profileImage: profileImage,
-          message: userData.message || 'Henüz mesaj yok',
-          time: userData.time || 'N/A',
-          unreadMessages: userData.unreadMessages || 0,
-        });
+      const auth = getAuth();
+      const currentUser = auth.currentUser; 
+      if (!currentUser) {
+        console.error('Kullanıcı oturum açmamış.');
+        return;
       }
-
-      setUsers(usersList);
+  
+      const chatsRef = collection(db, 'chats');
+      const q = query(chatsRef, where('users', 'array-contains', currentUser.uid));
+  
+      const unsubscribe = onSnapshot(q, async (snapshot) => {
+        const usersList = {};
+  
+        for (const chatDoc of snapshot.docs) {
+          const chatData = chatDoc.data();
+          const otherUsers = chatData.users.filter(userId => userId !== currentUser.uid);
+  
+          for (const otherUserId of otherUsers) {
+            if (usersList[otherUserId]) continue;
+  
+            const userRef = doc(db, 'userInfo', otherUserId);
+            const userSnapshot = await getDoc(userRef);
+            if (userSnapshot.exists()) {
+              const userData = userSnapshot.data();
+              usersList[otherUserId] = {
+                id: otherUserId,
+                userId: otherUserId,
+                username: userData.username,
+                profileImage: userData.profileImage || defaultProfileImage,
+                message: chatData.lastMessage || '',
+                time: chatData.lastMessageTimestamp 
+                  ? chatData.lastMessageTimestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                  : '',
+                lastMessageTimestamp: chatData.lastMessageTimestamp || null, // Sıralama için saklanıyor
+              };
+            }
+          }
+        }
+  
+        // Kullanıcıları `lastMessageTimestamp`'e göre sıralıyoruz
+        const sortedUsers = Object.values(usersList).sort((a, b) => {
+          if (!a.lastMessageTimestamp) return 1;
+          if (!b.lastMessageTimestamp) return -1;
+          return b.lastMessageTimestamp.toMillis() - a.lastMessageTimestamp.toMillis(); // Zaman damgasına göre sıralama
+        });
+  
+        setUsers(sortedUsers); // Sıralanmış kullanıcı listesini güncelliyoruz
+      });
+  
+      return () => unsubscribe();
     } catch (error) {
       console.error('Kullanıcılar alınırken hata:', error);
     }
   };
-
+  
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -71,7 +103,7 @@ const ChatsComponent = () => {
     <FlatList
       data={users}
       renderItem={({ item }) => <ChatItem item={item} />}
-      keyExtractor={item => item.id}
+      keyExtractor={item => item.id} // Benzersiz key olarak userId kullanılıyor
       showsVerticalScrollIndicator={false}
     />
   );
@@ -116,23 +148,12 @@ const styles = StyleSheet.create({
     fontFamily: 'ms-regular',
     fontSize: 12,
     color: '#999',
+    marginRight:-18
   },
   chatMessage: {
     fontFamily: 'ms-regular',
     fontSize: 13,
     color: '#666',
-  },
-  unreadBadge: {
-    backgroundColor: '#007BFF',
-    borderRadius: 12,
-    paddingVertical: 1,
-    paddingHorizontal: 5,
-    marginLeft: 10,
-  },
-  unreadText: {
-    color: '#fff',
-    fontSize: 13,
-    fontFamily: 'ms-regular',
   },
 });
 

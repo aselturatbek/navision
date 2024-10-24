@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, TextInput, FlatList, Image, Dimensions } from 'react-native';
 //firebase
 import { db } from '../firebase';
-import {getFirestore,doc, collection, query, where, getDocs,onSnapshot } from 'firebase/firestore';
+import {getFirestore, doc, collection, query, where, getDocs, onSnapshot,addDoc} from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 //expo
 import * as Font from 'expo-font';
@@ -15,6 +15,8 @@ import ChatsComponent from '../components/chatscreen/ChatsComponent';
 import FabComponent from '../components/chatscreen/FabComponent';
 import TopNavigation from '../components/TopNavigation';
 import SideMenu from '../components/SideMenu';
+import { useNavigation } from '@react-navigation/native'; // Navigation
+
 // Varsayılan profil resmi URL'si
 const defaultProfileImage = 'https://via.placeholder.com/150'; // Varsayılan bir resim URL'si
 
@@ -23,6 +25,8 @@ const MessageScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const animation = useRef(new Animated.Value(0)).current;
+  const navigation = useNavigation(); // Navigation için ekleme
+
   //top navigation 
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -44,8 +48,12 @@ const MessageScreen = () => {
     const unsubscribe = onSnapshot(userRef, (doc) => {
       if (doc.exists()) {
         const userData = doc.data();
+        const userId = doc.id; // userId'yi buradan alıyoruz
+        console.log('User ID:', userId); // Kullanıcı ID'sini consola yazdırıyoruz
+
         setCurrentUser({
-          uid: user.uid,
+          id: userId,  // Firestore'dan dönen belgenin otomatik ID'si
+          userId: userId,  // Firestore'un otomatik olarak oluşturduğu ID'yi kullanıyoruz
           email: user.email,
           profileImage: userData.profileImage || 'https://via.placeholder.com/150',
           displayName: userData.username || user.email.split('@')[0],
@@ -78,6 +86,7 @@ const MessageScreen = () => {
 
     return () => unsubscribeAuth();
   }, []);
+
   //topnavigation
 
   const toggleSearch = () => {
@@ -109,8 +118,9 @@ const MessageScreen = () => {
       for (const doc of querySnapshot.docs) {
         const userData = doc.data();
         users.push({
-          id: doc.id,
-          ...userData,
+          id: doc.id,  // Firestore'dan dönen belgenin otomatik ID'si
+          userId: doc.id,  // Firestore'un otomatik olarak oluşturduğu ID'yi kullanıyoruz
+          username: userData.username,
           profileImage: userData.profileImage || defaultProfileImage, // Profil resmi yoksa varsayılan resmi kullan
         });
       }
@@ -142,8 +152,46 @@ const MessageScreen = () => {
     outputRange: [0, 1],
   });
 
+  // Kullanıcıya tıklandığında ChatScreen'e yönlendirme
+  const handleUserPress = async (selectedUser) => {
+    try {
+      const db = getFirestore();
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+  
+      // Sohbet koleksiyonunda daha önce bu kullanıcıyla bir sohbet var mı kontrol et
+      const chatsRef = collection(db, 'chats');
+      const q = query(chatsRef, where('users', 'array-contains', currentUser.uid));
+      const querySnapshot = await getDocs(q);
+  
+      let existingChat = null;
+  
+      querySnapshot.forEach((doc) => {
+        const chatData = doc.data();
+        if (chatData.users.includes(selectedUser.id)) {
+          existingChat = { id: doc.id, ...chatData };
+        }
+      });
+  
+      // Eğer geçmiş bir sohbet varsa, onun ID'si ile ChatScreen'e git
+      if (existingChat) {
+        navigation.navigate('ChatScreen', { chatId: existingChat.id, user: selectedUser });
+      } else {
+        // Eğer geçmiş sohbet yoksa yeni bir sohbet başlat
+        const newChatRef = await addDoc(collection(db, 'chats'), {
+          users: [currentUser.uid, selectedUser.id],
+          createdAt: new Date(),
+        });
+        navigation.navigate('ChatScreen', { chatId: newChatRef.id, user: selectedUser });
+      }
+    } catch (error) {
+      console.error('Error checking or starting chat:', error);
+    }
+  };
+  
+
   const renderSearchResults = ({ item }) => (
-    <View>
+    <TouchableOpacity onPress={() => handleUserPress(item)}>
       <View style={styles.chatItem}>
         <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
         <View style={styles.chatDetails}>
@@ -153,7 +201,7 @@ const MessageScreen = () => {
         </View>
       </View>
       <View style={styles.shortDivider} />
-    </View>
+    </TouchableOpacity>
   );
 
   return (
