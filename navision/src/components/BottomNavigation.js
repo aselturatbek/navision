@@ -7,6 +7,7 @@ import PostUpload from '../mediaupload/PostUpload';
 import DefaultScreen from '../screens/DefaultScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import Default2 from '../screens/Default2';
+import MessageScreen from '../screens/MessageScreen';
 //icons
 import HomeIcon from '../assets/icons/HomeIcon';
 import SearchIcon from '../assets/icons/SearchIcon';
@@ -65,6 +66,20 @@ const BottomNavigation = ({ username, profileImage, name, surname }) => {
           tabBarLabel: () => null,
           tabBarIcon: ({ color, focused }) => <BagIcon size={25} color={focused ? "black" : color} /> 
         }} 
+      />
+      <Tab.Screen
+        name="Profile" // Yeni sayfa
+        component={ProfileScreen}
+        options={{
+          tabBarButton: () => null, // Simgeyi gizliyoruz
+        }}
+      />
+       <Tab.Screen
+        name="MessageScreen" // Yeni sayfa
+        component={MessageScreen}
+        options={{
+          tabBarButton: () => null, // Simgeyi gizliyoruz
+        }}
       />
     </Tab.Navigator>
   );

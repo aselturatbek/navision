@@ -9,6 +9,7 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/Ionicons';
 //components
 import TopNavigation from '../components/TopNavigation';
+import BottomNavigation from '../components/BottomNavigation';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -151,7 +152,9 @@ const ProfileScreen = () => {
         numColumns={2}
         columnWrapperStyle={styles.grid}
       />
+      <BottomNavigation />
     </View>
+   
   );
 };
 
