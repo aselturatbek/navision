@@ -222,7 +222,11 @@ const ChatScreen = ({ route }) => {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? -30:50}
+    >
       <View style={styles.header}>
         <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
         <Text style={styles.headerText}>{user.username}</Text>
@@ -280,6 +284,7 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: 10,
     marginTop: 30,
+    marginBottom:-13
   },
   header: {
     flexDirection: 'row',
@@ -303,7 +308,7 @@ const styles = StyleSheet.create({
   messagesList: {
     flex: 1,
     paddingHorizontal: 10,
-    paddingVertical: 15,
+    paddingVertical: 5,
   },
   messageItem: {
     maxWidth: '75%',
