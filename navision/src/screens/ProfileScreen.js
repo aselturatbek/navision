@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 //firebase
 import { auth } from '../firebase';
-import { getFirestore, doc, getDoc ,onSnapshot} from 'firebase/firestore';
+import { getFirestore, doc, getDoc ,onSnapshot,collection} from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 //icons
@@ -59,6 +59,7 @@ const ProfileScreen = () => {
   const toggleMenu = () => {
     setMenuVisible((prevMenuVisible) => !prevMenuVisible);
   };
+  
   useEffect(() => {
     loadFonts().then(() => setFontsLoaded(true));
 
@@ -89,6 +90,32 @@ const ProfileScreen = () => {
   useEffect(() => {
     fetchUserInfo(); // Bileşen ilk yüklendiğinde kullanıcı bilgilerini çek
   }, []);
+
+  //fetch posts
+  const fetchUserPosts = async (userId) => {
+    const db = getFirestore();
+    const postsQuery = collection(db, 'posts');
+    const unsubscribe = onSnapshot(postsQuery, (querySnapshot) => {
+      const userPosts = [];
+      querySnapshot.forEach((doc) => {
+        const postData = doc.data();
+        if (postData.userId === userId) {
+          userPosts.push({ id: doc.id, ...postData });
+        }
+      });
+      setUserInfo((prev) => ({ ...prev, posts: userPosts }));
+    });
+  
+    return unsubscribe;
+  };
+  useEffect(() => {
+    if (currentUser) {
+      const unsubscribe = fetchUserPosts(currentUser.uid);
+      return () => unsubscribe();
+    }
+  }, [currentUser]);
+  
+  
 
   const handleUpdate = (updatedInfo) => {
     setUserInfo(updatedInfo); // Kullanıcı bilgisini güncelle
@@ -151,13 +178,20 @@ const ProfileScreen = () => {
 
       {/* Grid Layout for posts */}
       <FlatList
-        data={[1, 2, 3, 4, 5, 6]} // Test verileri
-        renderItem={renderGridItem}
-        keyExtractor={(item, index) => index.toString()}
+        data={userInfo?.posts || []} // currentUser'a ait postlar
+        renderItem={({ item }) => (
+          <View style={styles.gridItem}>
+            <Image
+              source={{ uri: item.mediaUrls?.[0] || 'https://via.placeholder.com/150' }} // İlk medyayı göster
+              style={{ width: '100%', height: '100%', borderRadius: 10 }}
+            />
+          </View>
+        )}
+        keyExtractor={(item) => item.id}
         numColumns={2}
         columnWrapperStyle={styles.grid}
       />
-      <BottomNavigation />
+
     </View>
    
   );
@@ -195,8 +229,6 @@ const styles = StyleSheet.create({
   },
   userInfo:{
     marginRight:20,
-
-
   },
   username: {
     fontSize: 20,
@@ -230,7 +262,6 @@ const styles = StyleSheet.create({
   statItem: {
     alignItems: 'center',
     marginHorizontal: 15,
-    
   },
   statCount: {
     fontSize: 16,
@@ -275,21 +306,17 @@ const styles = StyleSheet.create({
     height:35,
     paddingTop:3,
     paddingRight:-6
-    
   },
   buttonText:{
     textAlign:'center',
     fontFamily:'ms-bold',
     color:'grey',
     fontSize:13
-
-
   },
   grid: {
     justifyContent: 'space-around',
     marginTop: 0,
     paddingHorizontal: 15,
-    
   },
   gridItem: {
     backgroundColor: '#e0e0e0',
@@ -297,7 +324,6 @@ const styles = StyleSheet.create({
     height: 160,
     marginBottom: 10,
     borderRadius: 10,
-  
   },
 });
 
