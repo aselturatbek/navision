@@ -7,6 +7,9 @@ import { useNavigation } from '@react-navigation/native';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 //icons
 import Icon from 'react-native-vector-icons/Ionicons';
+import EditIcon from '../assets/icons/EditIcon';
+import ReservationIcon from '../assets/icons/ReservationIcon';
+
 //components
 import TopNavigation from '../components/TopNavigation';
 import BottomNavigation from '../components/BottomNavigation';
@@ -109,11 +112,13 @@ const ProfileScreen = () => {
             style={styles.profileImage}
           />
           <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditProfile', { onUpdate: handleUpdate })}>
-            <Icon name="create-outline" size={20} color="#000" />
+            <EditIcon/>
           </TouchableOpacity>
+          <View style={styles.userInfo}>
           <Text style={styles.username}>{userInfo.name} {userInfo.surname}</Text>
           <Text style={styles.handle}>@{userInfo.username}</Text>
           <Text style={styles.biography}>{userInfo.biography}</Text>
+          </View>
         </View>
 
         <View style={styles.stats}>
@@ -127,7 +132,7 @@ const ProfileScreen = () => {
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statCount}>123</Text>
-            <Text style={styles.statLabel}>Takip Edilen</Text>
+            <Text style={styles.statLabel}>Takip</Text>
           </View>
         </View>
 
@@ -139,7 +144,7 @@ const ProfileScreen = () => {
             <Text style={styles.buttonText}>Mesaj At</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.moreButton}>
-            <Icon name="ellipsis-horizontal" size={20} color="#000" />
+            <ReservationIcon/>
           </TouchableOpacity>
         </View>
       </View>
@@ -177,24 +182,33 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
+    marginTop:-20,
+    marginLeft:6
   },
   editButton: {
     position: 'absolute',
-    top: 55,
-    right: 50,
+    top: 38,
+    right: 69,
     backgroundColor: '#fff',
     padding: 7,
     borderRadius: 20,
+  },
+  userInfo:{
+    marginRight:20,
+
+
   },
   username: {
     fontSize: 20,
     fontFamily:'ms-bold',
     marginTop: 10,
+    marginLeft:5
   },
   handle: {
     fontSize: 14,
     fontFamily:'ms-regular',
     color: '#555',
+    marginLeft:5
   },
   biography: {
     fontSize: 14,
@@ -202,20 +216,24 @@ const styles = StyleSheet.create({
     color: '#555',
     textAlign: 'center',
     marginTop: 5,
+    marginRight:73
   },
   stats: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom:50,
-    paddingRight:20
+    paddingRight:30,
+    position:'absolute',
+    marginLeft:165,
+    marginTop:20
   },
   statItem: {
     alignItems: 'center',
-    marginHorizontal: 10,
+    marginHorizontal: 15,
     
   },
   statCount: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 'bold',
     fontFamily:'ms-regular'
   },
@@ -228,51 +246,58 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     position:'absolute',
-    marginTop: 190,
+    marginTop: 180,
     marginLeft:11,
-    alignItems:'center'
-    
-
+    alignItems:'center',
   },
   followButton: {
     backgroundColor: '#ddd',
     padding: 10,
     borderRadius: 8,
-    marginHorizontal: 5,
-    width:150
+    marginHorizontal: 8,
+    width:140,
+    height:35
   },
   messageButton: {
     backgroundColor: '#ddd',
     padding: 10,
     borderRadius: 8,
     marginHorizontal: 5,
-    width:150
+    width:140,
+    height:35
   },
   moreButton: {
     backgroundColor: '#ddd',
-    padding: 10,
+    alignItems:'center',
     borderRadius: 8,
     marginHorizontal: 5,
+    width:50,
+    height:35,
+    paddingTop:3,
+    paddingRight:-6
     
   },
   buttonText:{
     textAlign:'center',
     fontFamily:'ms-bold',
     color:'grey',
+    fontSize:13
 
 
   },
   grid: {
     justifyContent: 'space-around',
-    marginTop: 10,
-    paddingHorizontal: 10,
+    marginTop: 0,
+    paddingHorizontal: 15,
+    
   },
   gridItem: {
     backgroundColor: '#e0e0e0',
     width: '48%',
-    height: 150,
+    height: 160,
     marginBottom: 10,
     borderRadius: 10,
+  
   },
 });
 
