@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   statCount: {
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily:'ms-regular'
+    fontFamily:'ms-bold'
   },
   statLabel: {
     fontSize: 12,
