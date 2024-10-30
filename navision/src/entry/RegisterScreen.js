@@ -36,10 +36,17 @@ const RegisterScreen = () => {
     setGender(type); // Seçilen cinsiyet state'ini güncelle
     setDropdownVisible(false);
   };
+   // Kullanıcı adı doğrulama fonksiyonu (Türkçe karakter ve büyük harf içermez)
+  const handleUsernameChange = (text) => {
+    const filteredText = text
+      .toLowerCase()  // Büyük harfleri küçüğe çevir
+      .replace(/[^a-z0-9]/g, ''); // Türkçe karakterleri kaldır
+    setUsername(filteredText);
+  };
   const checkUsernameExists = async (username) => {
     const snapshot = await getDocs(collection(firestore, 'userInfo'));
     return snapshot.docs.some(doc => doc.data().username === username);
-  }
+  };
 
   const handleDropdownToggle = () => {
     setDropdownVisible(!dropdownVisible); // Dropdown'u aç/kapa
@@ -280,7 +287,7 @@ const RegisterScreen = () => {
               style={styles.input}
               placeholder="username"
               value={username}
-              onChangeText={setUsername}
+              onChangeText={handleUsernameChange}
               returnKeyType="next"
               onSubmitEditing={() => emailInputRef.current.focus()}
               blurOnSubmit={false}
