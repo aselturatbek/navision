@@ -43,14 +43,16 @@ const BottomNavigation = ({ username, profileImage, name, surname }) => {
           tabBarIcon: ({ color, focused }) => <SearchIcon size={25} color={focused ? "black" : color} />
         }}
       />
-      <Tab.Screen 
-        name="PostUpload" 
-        component={PostUpload} 
-        options={{ 
-          tabBarLabel: () => null,
-          tabBarIcon: ({ color, focused }) => <PlusIcon color={focused ? "black" : color} />
-        }}
-      />
+        <Tab.Screen 
+          name="PostUpload" 
+          component={PostUpload} 
+          options={{
+            tabBarLabel: () => null,
+            tabBarIcon: ({ color, focused }) => <PlusIcon color={focused ? "black" : color} />,
+            unmountOnBlur: true, // PostUpload ekranı her açıldığında yeniden yüklensin
+            tabBarStyle: { display: 'none' }, // Gizlemek için tabBarStyle ayarını da ekleyelim
+          }}
+        />
       <Tab.Screen 
         name="Default" 
         component={DefaultScreen} 
