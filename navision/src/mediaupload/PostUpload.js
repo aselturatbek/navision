@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Alert, Image,Modal, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, TextInput, Alert, Image, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getFirestore, collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -46,7 +46,6 @@ const PostUpload = ({ navigation }) => {
   const auth = getAuth();
   const firestore = getFirestore();
   const storage = getStorage();
-  const [modalVisible, setModalVisible] = useState(false); 
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('1:1');
 
   useEffect(() => {
@@ -257,22 +256,6 @@ const pickVideo = async () => {
 
   return (
     <View style={styles.container}>
-      {/* <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Kırpma Oranı Seç</Text>
-            <TouchableOpacity onPress={() => setSelectedAspectRatio('1:1')}>
-              <Text style={styles.modalOption}>1:1</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setSelectedAspectRatio('4:5')}>
-              <Text style={styles.modalOption}>4:5</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Text style={styles.modalClose}>Kapat</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal> */}
       {step === 1 ? (
         <View style={styles.firstStepContainer1}>
         <View style={styles.headerContainer1}>
