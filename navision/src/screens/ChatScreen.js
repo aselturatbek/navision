@@ -18,7 +18,7 @@ import SendMessage from '../assets/icons/chaticons/SendMessage';
 import VoiceMessage from '../assets/icons/chaticons/VoiceMessage';
 import CameraIcon from '../assets/icons/chaticons/CameraIcon';
 
-const ChatScreen = ({ route }) => {
+const ChatScreen = ({ route,navigation }) => {
   const { user } = route.params;
   const auth = getAuth();
   const currentUser = auth.currentUser;
@@ -234,7 +234,7 @@ const ChatScreen = ({ route }) => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? -30:50}
     >
       <View style={styles.header}>
-      <TouchableOpacity style={styles.backIcon}>
+      <TouchableOpacity style={styles.backIcon} onPress={() => navigation.navigate('MessageScreen')}>
           <BackIcon/>
         </TouchableOpacity>
         <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
