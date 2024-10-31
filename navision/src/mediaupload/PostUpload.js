@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Alert, Image, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, TextInput, Alert, Image,Modal, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getFirestore, collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -8,15 +8,29 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Video } from 'expo-av';
 import * as ImageManipulator from 'expo-image-manipulator';
+//icons
+import CancelIcon from '../assets/icons/postuploadicons/CancelIcon';
+import AcceptIcon from '../assets/icons/postuploadicons/AcceptIcon';
+import CameraIcon from '../assets/icons/postuploadicons/CameraIcon';
+import CaptureIcon from '../assets/icons/postuploadicons/CaptureIcon';
+import TurnIcon from '../assets/icons/postuploadicons/TurnIcon';
 
-const resizeImage = async (uri) => {
+
+// Fotoğrafı seçilen oran ile kırpma ve yeniden boyutlandırma
+const resizeAndCropImage = async (uri, aspectRatio) => {
   const manipulatedImage = await ImageManipulator.manipulateAsync(
     uri,
-    [{ resize: { width: 800 } }],
+    [
+      { resize: { width: aspectRatio === '4:5' ? 800 : 800, height: aspectRatio === '4:5' ? 1000 : 800 } },
+      { crop: { originX: 0, originY: 0, width: aspectRatio === '4:5' ? 800 : 800, height: aspectRatio === '4:5' ? 1000 : 800 } }
+    ],
     { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
   );
   return manipulatedImage.uri;
 };
+
+
+
 
 const PostUpload = ({ navigation }) => {
   const [step, setStep] = useState(1); // Adım durumu
@@ -32,6 +46,8 @@ const PostUpload = ({ navigation }) => {
   const auth = getAuth();
   const firestore = getFirestore();
   const storage = getStorage();
+  const [modalVisible, setModalVisible] = useState(false); 
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState('1:1');
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -75,22 +91,46 @@ const PostUpload = ({ navigation }) => {
     setCountry('');
   };
 
-  const pickMedia = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsMultipleSelection: true,
-    });
+  
+// Çoklu ortam seçimi (hem fotoğraf hem video için)
+// const pickMedia = async () => {
+//   const result = await ImagePicker.launchImageLibraryAsync({
+//     mediaTypes: ImagePicker.MediaTypeOptions.All,
+//     allowsMultipleSelection: true,
+//   });
 
-    if (!result.canceled) {
-      const newMedia = await Promise.all(
-        result.assets.map(async (asset) => ({
-          uri: asset.type === 'image' ? await resizeImage(asset.uri) : asset.uri,
-          type: asset.type,
-        }))
-      );
-      setMediaUrls([...mediaUrls, ...newMedia]);
-    }
-  };
+//   if (!result.canceled && result.assets) {
+//     const newMedia = await Promise.all(
+//       result.assets.map(async (asset) => ({
+//         uri: asset.type === 'image' ? await resizeAndCropImage(asset.uri, selectedAspectRatio) : asset.uri,
+//         type: asset.type,
+//       }))
+//     );
+//     setMediaUrls([...mediaUrls, ...newMedia]);
+//   }
+// };
+const pickPhoto = async () => {
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+  });
+
+  if (!result.canceled && result.assets && result.assets.length > 0) {
+    const croppedImageUri = await resizeAndCropImage(result.assets[0].uri, selectedAspectRatio);
+    setMediaUrls([...mediaUrls, { uri: croppedImageUri, type: 'image' }]);
+  }
+};
+// Video seçme işlemi
+const pickVideo = async () => {
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+  });
+
+  if (!result.canceled) {
+    setMediaUrls([...mediaUrls, { uri: result.uri, type: 'video' }]);
+  }
+};
+
 
   const removeMedia = (index) => {
     const updatedMedia = mediaUrls.filter((_, i) => i !== index);
@@ -183,7 +223,6 @@ const PostUpload = ({ navigation }) => {
 
   const renderMediaPreview = ({ item: media, index }) => {
     if (!media) return null;
-    
     if (media.type === 'video') {
       return (
         <View key={index} style={styles.mediaWrapper}>
@@ -192,9 +231,10 @@ const PostUpload = ({ navigation }) => {
             style={styles.media}
             resizeMode="contain"
             useNativeControls
+            ref={videoRef}
             onPlaybackStatusUpdate={(status) => {
               if (!status.isPlaying && status.didJustFinish) {
-                videoRef.current?.stopAsync(); // Video bittiğinde durdur
+                videoRef.current?.stopAsync();
               }
             }}
           />
@@ -204,7 +244,6 @@ const PostUpload = ({ navigation }) => {
         </View>
       );
     }
-    
     return (
       <View key={index} style={styles.mediaWrapper}>
         <Image source={{ uri: media.uri }} style={styles.media} />
@@ -214,23 +253,37 @@ const PostUpload = ({ navigation }) => {
       </View>
     );
   };
-  
-  
+
 
   return (
     <View style={styles.container}>
+      {/* <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Kırpma Oranı Seç</Text>
+            <TouchableOpacity onPress={() => setSelectedAspectRatio('1:1')}>
+              <Text style={styles.modalOption}>1:1</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setSelectedAspectRatio('4:5')}>
+              <Text style={styles.modalOption}>4:5</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={styles.modalClose}>Kapat</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal> */}
       {step === 1 ? (
         <View style={styles.firstStepContainer1}>
         <View style={styles.headerContainer1}>
           <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-            <Text style={styles.backButtonText1}>Geri</Text>
+            <CancelIcon style={styles.cancelIcon}/>
           </TouchableOpacity>
           <Text style={styles.headerText1}>Paylaşım Yap</Text>
           <TouchableOpacity onPress={() => setStep(1.5)}>
-            <Text style={styles.confirmButtonText1}>Onayla</Text>
+            <AcceptIcon/>
           </TouchableOpacity>
         </View>
-        
         <FlatList
           data={mediaUrls}
           renderItem={renderMediaPreview}
@@ -240,12 +293,26 @@ const PostUpload = ({ navigation }) => {
           showsHorizontalScrollIndicator={false}
           style={styles.mediaContainer1}
         />
-      
-        <TouchableOpacity style={styles.captureButton1} onPress={pickMedia}>
-          <Text style={styles.buttonText1}>Fotoğraf / Video</Text>
-        </TouchableOpacity>
+         <View style={styles.optionContainer}>
+         <TouchableOpacity style={styles.imageText}  >
+            <Text style={styles.fotograf}>Fotoğraf</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.videoText}  >
+            <Text style={styles.fotograf}>Video</Text>
+          </TouchableOpacity>
+        </View>
+       <View style={styles.iconContainer}>
+          <TouchableOpacity onPress={pickPhoto} style={styles.cameraIcon} >
+            <CameraIcon />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={pickPhoto} style={styles.captureIcon}>
+            <CaptureIcon />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.turnIcon}  >
+            <TurnIcon />
+          </TouchableOpacity>
+        </View>
       </View>
-      
       ) : (
         <View style={styles.secondStepContainer}>
           <TouchableOpacity onPress={() => setStep(1)}>
@@ -292,12 +359,14 @@ const styles = StyleSheet.create({
   secondStepContainer: {
     flex: 1,
     padding: 20,
+    backgroundColor:'white'
   },
   headerText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
     textAlign: 'center',
+   
   },
   captureButton: {
     width: 80,
@@ -312,23 +381,75 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
+    height:400,
+    width:400 
+  },
+  mediaWrapper: {
+    height:400,
+    width:400,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginRight: 15,
+  },
+  media: {
+    height:400,
+    width:400 
   },
   iconContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#000',
   },
-  mediaWrapper: {
-    position: 'relative',
-    marginRight: 10,
+  cameraIcon: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom:80
   },
-  media: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
+  turnIcon:{
+    marginBottom:70,
+    marginRight:10
+
+  },
+  captureIcon: {
+    width: 70, // Büyük ikon boyutu
+    height: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom:70
+  },
+  optionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 85,
+    paddingVertical: 60,
+    backgroundColor: '#000',
+  },
+  imageText:{
+    backgroundColor:'rgba(26, 34, 42, 1)',
+    width:100,
+    height:30,
+    borderRadius:15,
+    alignItems:'center',
+    justifyContent:'center'
+  },
+  videoText:{
+    backgroundColor:'transparent',
+    width:100,
+    height:30,
+    borderRadius:15,
+    alignItems:'center',
+    justifyContent:'center'
+  },
+  fotograf:{
+    color:'white',
+    fontFamily:'ms-light'
+         
   },
   backButtonText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 16,
     textAlign:'left',
     marginTop:50
@@ -381,7 +502,9 @@ const styles = StyleSheet.create({
     fontFamily: 'ms-bold',
     textAlign: 'center',
     flex: 1,
-    marginRight: 30,
+  },
+  cancelIcon: {
+    marginTop:40,
   },
   confirmButtonText1: {
     color: '#FFFFFF',
@@ -394,15 +517,16 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   mediaWrapper: {
-    width: 300, // Daha büyük boyut
-    height: 400,
+    height:350,
+    width:350,
     borderRadius: 10,
     overflow: 'hidden',
     marginRight: 15,
+    marginTop:90
   },
   media: {
-    width: '100%',
-    height: '100%',
+    height:400,
+    width:400 
   },
   captureButton1: {
     width: 70,
