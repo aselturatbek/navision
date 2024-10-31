@@ -10,7 +10,13 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Audio } from 'expo-av'; // Ses kaydı ve oynatma için
 import { Animated } from 'react-native';
-
+//icons
+import BackIcon from '../assets/icons/chaticons/BackIcon';
+import VideoCallIcon from '../assets/icons/chaticons/VideoCallIcon';
+import PhoneIcon from '../assets/icons/chaticons/PhoneIcon';
+import SendMessage from '../assets/icons/chaticons/SendMessage';
+import VoiceMessage from '../assets/icons/chaticons/VoiceMessage';
+import CameraIcon from '../assets/icons/chaticons/CameraIcon';
 
 const ChatScreen = ({ route }) => {
   const { user } = route.params;
@@ -203,21 +209,21 @@ const ChatScreen = ({ route }) => {
 
     return (
       <View style={[styles.messageItem, isSender ? styles.sentMessage : styles.receivedMessage]}>
-        {item.mediaUrl && <Image source={{ uri: item.mediaUrl }} style={styles.media} />}
-        {item.audioUrl && (
-          <TouchableOpacity onPress={async () => {
-            const { sound } = await Audio.Sound.createAsync({ uri: item.audioUrl });
-            setSound(sound);
-            await sound.playAsync();
-          }}>
-            <Text style={styles.audioText}>Ses Dosyasını Dinle</Text>
-          </TouchableOpacity>
-        )}
-        <Text style={styles.messageText}>{item.text}</Text>
-        <Text style={styles.timestamp}>
-          {new Date(item.timestamp?.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
-      </View>
+      {item.mediaUrl && <Image source={{ uri: item.mediaUrl }} style={styles.media} />}
+      {item.audioUrl && (
+        <TouchableOpacity onPress={async () => {
+          const { sound } = await Audio.Sound.createAsync({ uri: item.audioUrl });
+          setSound(sound);
+          await sound.playAsync();
+        }}>
+          <Text style={styles.audioText}>Ses Dosyasını Dinle</Text>
+        </TouchableOpacity>
+      )}
+      <Text style={[styles.messageText, isSender && styles.sentMessageText]}>{item.text}</Text>
+      <Text style={[styles.timestamp, isSender && styles.sentTimestamp]}>
+        {new Date(item.timestamp?.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      </Text>
+    </View>
     );
   };
 
@@ -228,8 +234,17 @@ const ChatScreen = ({ route }) => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? -30:50}
     >
       <View style={styles.header}>
+      <TouchableOpacity style={styles.backIcon}>
+          <BackIcon/>
+        </TouchableOpacity>
         <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
-        <Text style={styles.headerText}>{user.username}</Text>
+        <Text style={styles.headerText}>@{user.username}</Text>
+        <TouchableOpacity style={styles.videoCall}>
+          <VideoCallIcon/>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.phoneCall}>
+          <PhoneIcon/>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -255,25 +270,25 @@ const ChatScreen = ({ route }) => {
 
       <View style={styles.inputContainer}>
         <TouchableOpacity style={styles.mediaButton} onPress={pickMedia}>
-          <Icon name="paperclip" size={24} color="#333" />
+          <CameraIcon/>
         </TouchableOpacity>
-        {recording ? (
-          <TouchableOpacity style={styles.mediaButton} onPress={stopRecording}>
-            <Icon name="microphone" size={24} color="green" />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.mediaButton} onPress={startRecording}>
-            <Icon name="microphone" size={24} color="#333" />
-          </TouchableOpacity>
-        )}
         <TextInput
           style={styles.input}
           value={newMessage}
           onChangeText={setNewMessage}
           placeholder="Mesaj yaz..."
         />
+        {recording ? (
+          <TouchableOpacity style={styles.voiceButton}>
+            <VoiceMessage/>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.voiceButton}>
+            <VoiceMessage/>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.button} onPress={sendMessage}>
-          <Icon name="send" size={24} color="#000" />
+          <SendMessage/>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -282,33 +297,44 @@ const ChatScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    margin: 10,
-    marginTop: 30,
-    marginBottom:-13
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 26,
     backgroundColor: 'transparent',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e6e6e6',
+    flex:-10, 
+    marginRight:30,
+    marginTop:30
   },
   profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 45,
+    height: 45,
+    borderRadius: 25,
     marginRight: 10,
+    marginLeft:20
   },
   headerText: {
     fontSize: 18,
-    fontFamily: 'ms-bold',
+    fontFamily: 'ms-regular',
     color: '#333',
   },
+  backIcon: {
+    marginLeft:-10,
+  },
+  videoCall: {
+    marginLeft:100,
+    position:'static'
+  },
+  phoneCall: {
+    marginLeft:13,
+    marginTop:-3
+  },
+  
   messagesList: {
     flex: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 15,
+    paddingVertical: -10,
   },
   messageItem: {
     maxWidth: '75%',
@@ -317,20 +343,33 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   sentMessage: {
-    backgroundColor: '#DCF8C6',
+    backgroundColor: 'background: rgba(122, 129, 148, 1)',
     alignSelf: 'flex-end',
   },
   receivedMessage: {
-    backgroundColor: '#DCF8',
+    backgroundColor: 'rgba(235, 236, 238, 1)',
     alignSelf: 'flex-start',
   },
+  sentMessageText: {
+    color: '#FFFFFF',  // Beyaz renk
+  },
+  sentTimestamp: {
+    color: '#ddd',  // Beyaz renk
+    fontSize:10
+  },
+  audioText:{
+    color:'white',
+    fontFamily:'ms-light'
+
+
+  },
   messageText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#333',
     fontFamily: 'ms-regular',
   },
   timestamp: {
-    fontSize: 12,
+    fontSize: 10,
     fontFamily: 'ms-regular',
     color: '#999',
   },
@@ -355,21 +394,21 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: 10,
-    borderTopWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: 'transparent',
+    backgroundColor: 'background: rgba(235, 236, 238, 1)',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
+    width:360,
+    marginLeft:15,
+    height:90,
+    borderRadius:45,
+    
+
   },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 30,
     paddingHorizontal: 15,
     paddingVertical: 8,
     marginRight: 10,
-    backgroundColor: '#f5f5f5',
     fontFamily: 'ms-regular',
   },
   button: {
@@ -378,7 +417,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   mediaButton: {
-    marginRight: 10,
+    marginLeft: 10,
   },
 });
 
