@@ -239,12 +239,12 @@ const ChatScreen = ({ route }) => {
         </TouchableOpacity>
         <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
         <Text style={styles.headerText}>@{user.username}</Text>
-        <TouchableOpacity style={styles.videoCall}>
+        {/* <TouchableOpacity style={styles.videoCall}>
           <VideoCallIcon/>
         </TouchableOpacity>
         <TouchableOpacity style={styles.phoneCall}>
           <PhoneIcon/>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       <FlatList
