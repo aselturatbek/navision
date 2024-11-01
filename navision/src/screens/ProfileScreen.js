@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   editButton: {
     position: 'absolute',
     top: 38,
-    right: 69,
+    right: 50,
     backgroundColor: '#fff',
     padding: 7,
     borderRadius: 20,
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     color: '#555',
     textAlign: 'center',
     marginTop: 5,
-    marginRight:73
+    marginLeft:5
   },
   stats: {
     flexDirection: 'row',
