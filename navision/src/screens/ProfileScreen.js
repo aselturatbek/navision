@@ -2,14 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 //firebase
 import { auth } from '../firebase';
-import { getFirestore, doc, getDoc ,onSnapshot,collection} from 'firebase/firestore';
+import { getFirestore, doc, getDoc ,onSnapshot,collection,query,where,orderBy} from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 //icons
-import Icon from 'react-native-vector-icons/Ionicons';
-import EditIcon from '../assets/icons/EditIcon';
-import ReservationIcon from '../assets/icons/ReservationIcon';
-
+import EditIcon from '../assets/icons/profileicons/EditIcon';
+import ReservationIcon from '../assets/icons/profileicons/ReservationIcon';
+import CarouselIcon from '../assets/icons/profileicons/CarouselIcon';
 //components
 import TopNavigation from '../components/TopNavigation';
 import BottomNavigation from '../components/BottomNavigation';
@@ -92,9 +91,13 @@ const ProfileScreen = () => {
   }, []);
 
   //fetch posts
-  const fetchUserPosts = async (userId) => {
+  const fetchUserPosts = (userId) => {
     const db = getFirestore();
-    const postsQuery = collection(db, 'posts');
+    const postsQuery = query(
+      collection(db, 'posts'),
+      orderBy('timestamp', 'desc') // En son atılan postu ilk sırada getirmek için
+    );
+
     const unsubscribe = onSnapshot(postsQuery, (querySnapshot) => {
       const userPosts = [];
       querySnapshot.forEach((doc) => {
@@ -105,24 +108,34 @@ const ProfileScreen = () => {
       });
       setUserInfo((prev) => ({ ...prev, posts: userPosts }));
     });
-  
+
     return unsubscribe;
   };
+
   useEffect(() => {
     if (currentUser) {
       const unsubscribe = fetchUserPosts(currentUser.uid);
       return () => unsubscribe();
     }
   }, [currentUser]);
-  
-  
 
   const handleUpdate = (updatedInfo) => {
     setUserInfo(updatedInfo); // Kullanıcı bilgisini güncelle
   };
 
-  const renderGridItem = () => (
-    <View style={styles.gridItem} />
+  const renderGridItem = ({ item }) => (
+    <View style={styles.gridItem}>
+      <Image
+        source={{ uri: item.mediaUrls?.[0] || 'https://via.placeholder.com/150' }} // İlk medyayı göster
+        style={{ width: '100%', height: '100%', borderRadius: 10 }}
+      />
+      {/* Eğer post bir carousel ise CarouselIcon'u göster */}
+      {item.mediaUrls && item.mediaUrls.length > 1 && (
+        <View style={styles.carouselIcon}>
+          <CarouselIcon />
+        </View>
+      )}
+    </View>
   );
 
   if (!userInfo) {
@@ -179,21 +192,12 @@ const ProfileScreen = () => {
       {/* Grid Layout for posts */}
       <FlatList
         data={userInfo?.posts || []} // currentUser'a ait postlar
-        renderItem={({ item }) => (
-          <View style={styles.gridItem}>
-            <Image
-              source={{ uri: item.mediaUrls?.[0] || 'https://via.placeholder.com/150' }} // İlk medyayı göster
-              style={{ width: '100%', height: '100%', borderRadius: 10 }}
-            />
-          </View>
-        )}
+        renderItem={renderGridItem}
         keyExtractor={(item) => item.id}
         numColumns={2}
         columnWrapperStyle={styles.grid}
       />
-
     </View>
-   
   );
 };
 
@@ -226,9 +230,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 7,
     borderRadius: 20,
-  },
-  userInfo:{
-    marginRight:20,
   },
   username: {
     fontSize: 20,
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
     alignItems:'center',
   },
   followButton: {
-    backgroundColor: '#ddd',
+    backgroundColor: 'rgba(51, 65, 79, 1)',
     padding: 10,
     borderRadius: 8,
     marginHorizontal: 8,
@@ -290,7 +291,7 @@ const styles = StyleSheet.create({
     height:35
   },
   messageButton: {
-    backgroundColor: '#ddd',
+    backgroundColor: 'rgba(51, 65, 79, 1)',
     padding: 10,
     borderRadius: 8,
     marginHorizontal: 5,
@@ -298,7 +299,7 @@ const styles = StyleSheet.create({
     height:35
   },
   moreButton: {
-    backgroundColor: '#ddd',
+    backgroundColor: 'rgba(51, 65, 79, 1)',
     alignItems:'center',
     borderRadius: 8,
     marginHorizontal: 5,
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
   buttonText:{
     textAlign:'center',
     fontFamily:'ms-bold',
-    color:'grey',
+    color:'#fff',
     fontSize:13
   },
   grid: {
@@ -324,6 +325,12 @@ const styles = StyleSheet.create({
     height: 160,
     marginBottom: 10,
     borderRadius: 10,
+    position: 'relative', // CarouselIcon pozisyonu için gerekli
+  },
+  carouselIcon: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
 });
 

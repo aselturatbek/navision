@@ -3,7 +3,7 @@ import { View, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { AntDesign, FontAwesome } from '@expo/vector-icons';
 
 // icons
-import ReservationIcon from '../../assets/icons/ReservationIcon';
+import ReservationIcon from '../../assets/icons/profileicons/ReservationIcon';
 import GroupChatIcon from '../../assets/icons/GroupChatIcon';
 import ChatMenuIcon from '../../assets/icons/ChatMenuIcon';
 import ChatIcon from '../../assets/icons/ChatIcon';
