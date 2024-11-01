@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity,TouchableWithoutFeedback,FlatList,Modal } from 'react-native';
 //firebase
 import { auth } from '../firebase';
-import { getFirestore, doc, getDoc ,onSnapshot,collection,query,where,orderBy} from 'firebase/firestore';
+import { limit, startAfter,getFirestore, doc, getDoc ,onSnapshot,collection,query,where,orderBy} from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 //icons
@@ -11,7 +11,7 @@ import ReservationIcon from '../assets/icons/profileicons/ReservationIcon';
 import CarouselIcon from '../assets/icons/profileicons/CarouselIcon';
 //components
 import TopNavigation from '../components/TopNavigation';
-import BottomNavigation from '../components/BottomNavigation';
+
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -21,6 +21,9 @@ const ProfileScreen = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  //pop up
+  const [selectedPost, setSelectedPost] = useState(null); // Popup için seçilen post
+  const [isPopupVisible, setPopupVisible] = useState(false); // Popup görünürlüğü
 
   const loadFonts = async () => {
     await Font.loadAsync({
@@ -91,25 +94,46 @@ const ProfileScreen = () => {
   }, []);
 
   //fetch posts
-  const fetchUserPosts = (userId) => {
+  const POSTS_PER_PAGE = 10; // Her sayfada gösterilecek post sayısı
+  const [lastVisiblePost, setLastVisiblePost] = useState(null);
+
+  const fetchUserPosts = (userId, isLoadingMore = false) => {
     const db = getFirestore();
-    const postsQuery = query(
+    let postsQuery = query(
       collection(db, 'posts'),
-      orderBy('timestamp', 'desc') // En son atılan postu ilk sırada getirmek için
+      where('userId', '==', userId),
+      orderBy('timestamp', 'desc'),
+      limit(POSTS_PER_PAGE)
     );
+
+    // Eğer daha fazla yükleniyorsa, `startAfter` kullanarak sıradaki postları çek
+    if (isLoadingMore && lastVisiblePost) {
+      postsQuery = query(postsQuery, startAfter(lastVisiblePost));
+    }
 
     const unsubscribe = onSnapshot(postsQuery, (querySnapshot) => {
       const userPosts = [];
       querySnapshot.forEach((doc) => {
-        const postData = doc.data();
-        if (postData.userId === userId) {
-          userPosts.push({ id: doc.id, ...postData });
-        }
+        userPosts.push({ id: doc.id, ...doc.data() });
       });
-      setUserInfo((prev) => ({ ...prev, posts: userPosts }));
+
+      // Son postu kaydet
+      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+      setLastVisiblePost(lastVisible);
+
+      // Yüklenmiş postları güncelle
+      setUserInfo((prev) => ({
+        ...prev,
+        posts: isLoadingMore ? [...prev.posts, ...userPosts] : userPosts,
+      }));
     });
 
     return unsubscribe;
+  };
+
+  // Daha fazla yükleme fonksiyonu
+  const loadMorePosts = () => {
+    fetchUserPosts(currentUser.uid, true); // Yüklemeye devam et
   };
 
   useEffect(() => {
@@ -122,20 +146,31 @@ const ProfileScreen = () => {
   const handleUpdate = (updatedInfo) => {
     setUserInfo(updatedInfo); // Kullanıcı bilgisini güncelle
   };
+  useEffect(() => {
+    if (selectedPost) {
+      console.log('Selected Post:', selectedPost);
+    }
+  }, [selectedPost]);
+  
 
   const renderGridItem = ({ item }) => (
-    <View style={styles.gridItem}>
+    <TouchableOpacity
+      onLongPress={() => {
+        setSelectedPost(item); // Seçilen post verisini ayarla
+        setPopupVisible(true); // Popup'u göster
+      }}
+      style={styles.gridItem}
+    >
       <Image
         source={{ uri: item.mediaUrls?.[0] || 'https://via.placeholder.com/150' }} // İlk medyayı göster
         style={{ width: '100%', height: '100%', borderRadius: 10 }}
       />
-      {/* Eğer post bir carousel ise CarouselIcon'u göster */}
       {item.mediaUrls && item.mediaUrls.length > 1 && (
         <View style={styles.carouselIcon}>
           <CarouselIcon />
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 
   if (!userInfo) {
@@ -145,6 +180,7 @@ const ProfileScreen = () => {
   return (
     <View style={styles.container}>
       <TopNavigation onMenuPress={toggleMenu} user={currentUser} />
+
       <View style={styles.header}>
         <View style={styles.userInfo}>
           <Image
@@ -187,6 +223,41 @@ const ProfileScreen = () => {
             <ReservationIcon/>
           </TouchableOpacity>
         </View>
+
+
+      {/* Popup Modal */}
+      <Modal
+        transparent={true}
+        visible={isPopupVisible}
+        animationType="slide"
+        onRequestClose={() => setPopupVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setPopupVisible(false)}>
+          <View style={styles.popupContainer}>
+            <TouchableWithoutFeedback>
+              <View style={styles.popupContent}>
+              <View style={styles.popupHeader}>
+                <Image
+                  source={{ uri: selectedPost?.profileImage || 'https://via.placeholder.com/150' }}
+                  style={styles.popupProfileImage}
+                />
+                <View style={styles.popupTitle}>
+                  <Text style={styles.popupUsername}>{selectedPost?.username}</Text>
+                  <Text style={styles.popupLocation}>
+                    {selectedPost?.location?.city}, {selectedPost?.location?.country}
+                  </Text>
+                </View>
+              </View>
+
+                <Image
+                  source={{ uri: selectedPost?.mediaUrls?.[0] || 'https://via.placeholder.com/300' }}
+                  style={styles.popupImage}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
       </View>
 
       {/* Grid Layout for posts */}
@@ -205,6 +276,72 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+  },
+  popupContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  popupHeader:{
+    marginLeft:-45,
+    marginTop:-10,
+  },
+  popupContent: {
+    width: 360,
+    height:400,
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 25,
+    alignItems: 'center',
+    marginTop:-100
+  },
+  popupProfileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 30,
+    marginBottom: 10,
+    marginLeft:-90
+  },
+  popupTitle:{
+    flexDirection:'column',
+    marginTop:-55,
+    marginLeft:-25,
+
+  },
+  popupUsername: {
+    fontSize: 14,
+    marginBottom: 5,
+    fontFamily:'ms-regular',
+   
+  },
+  popupText: {
+    fontSize: 16,
+    textAlign: 'center',
+    
+  },
+  popupLocation:{
+    fontFamily:'ms-light',
+    fontSize:12,
+
+  },
+  popupImage: {
+    width: 360,
+    height: 450,
+    borderBottomLeftRadius:25,
+    borderBottomRightRadius:25,
+    marginTop: 15,
+    resizeMode: 'cover', // Görselin düzgün görünmesi için
+  },  
+  closeButton: {
+    backgroundColor: '#333',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 14,
   },
   header: {
     padding: 20,
