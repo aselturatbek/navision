@@ -13,7 +13,7 @@ import ThreeLineIcon from '../assets/icons/ThreeLine';
 import MapComponent from '../components/chatscreen/MapComponent';
 import ChatsComponent from '../components/chatscreen/ChatsComponent';
 import FabComponent from '../components/chatscreen/FabComponent';
-import TopNavigation from '../components/TopNavigation';
+import TopNavigation from '../navigation/TopNavigation';
 import SideMenu from '../components/SideMenu';
 import { useNavigation } from '@react-navigation/native'; // Navigation
 

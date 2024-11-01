@@ -4,7 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import * as Font from 'expo-font';
 //components
-import BottomNavigation from '../components/BottomNavigation';
+import BottomNavigation from './BottomNavigation';
 //screens
 import SplashScreen from '../entry/SplashScreen';
 import WelcomeScreen from '../entry/WelcomeScreen';
@@ -13,6 +13,7 @@ import RegisterScreen from '../entry/RegisterScreen';
 import EditProfile from '../components/EditProfile';
 import StoryUpload from '../mediaupload/StoryUpload';
 import ChatScreen from '../screens/ChatScreen';
+import UserPosts from '../screens/profilescreen/UserPosts';
 //firebase
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
@@ -110,7 +111,7 @@ const AppNavigator = () => {
           <Stack.Screen name="EditProfile" component={EditProfile} options={{ headerShown: false }} />
           <Stack.Screen name="StoryUpload" component={StoryUpload} options={{ headerShown: false }} />
           <Stack.Screen name="ChatScreen" component={ChatScreen} options={{ headerShown: false }} />
-          
+          <Stack.Screen name="UserPosts" component={UserPosts} options={{ headerShown: false }} />
 
         </Stack.Navigator>
       </View>

@@ -8,6 +8,7 @@ import DefaultScreen from '../screens/DefaultScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import Default2 from '../screens/Default2';
 import MessageScreen from '../screens/MessageScreen';
+import UserPosts from '../screens/profilescreen/UserPosts';
 //icons
 import HomeIcon from '../assets/icons/HomeIcon';
 import SearchIcon from '../assets/icons/SearchIcon';
@@ -79,6 +80,13 @@ const BottomNavigation = ({ username, profileImage, name, surname }) => {
        <Tab.Screen
         name="MessageScreen" // Yeni sayfa
         component={MessageScreen}
+        options={{
+          tabBarButton: () => null, // Simgeyi gizliyoruz
+        }}
+      />
+      <Tab.Screen
+        name="UserPosts" // Yeni sayfa
+        component={UserPosts}
         options={{
           tabBarButton: () => null, // Simgeyi gizliyoruz
         }}

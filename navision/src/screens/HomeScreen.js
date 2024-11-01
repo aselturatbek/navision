@@ -9,7 +9,7 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import RefreshComponent from '../components/RefreshComponent';
 import StoryFeed from '../components/StoryFeed';
 import PostFeed from '../components/PostFeed';
-import TopNavigation from '../components/TopNavigation';
+import TopNavigation from '../navigation/TopNavigation';
 import SideMenu from '../components/SideMenu';
 
 const HomeScreen = () => {

@@ -4,7 +4,7 @@ import { View, Text } from 'react-native';
 import { getFirestore, doc, onSnapshot, collection } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 //components
-import TopNavigation from '../components/TopNavigation';
+import TopNavigation from '../navigation/TopNavigation';
 const SearchScreen = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);

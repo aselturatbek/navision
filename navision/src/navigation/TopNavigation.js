@@ -11,7 +11,7 @@ import MoreIcon from '../assets/icons/MoreIcon';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
 //components
-import SideMenu from './SideMenu';
+import SideMenu from '../components/SideMenu';
 
 const TopNavigation = ({ onMenuPress, user }) => {
   const navigation = useNavigation();
