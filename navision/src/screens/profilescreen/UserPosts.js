@@ -16,16 +16,16 @@ import LocationIcon from '../../assets/icons/LocationIcon';
 import CommentIcon from '../../assets/icons/CommentIcon';
 import SendIcon from '../../assets/icons/SendIcon';
 import HeartIcon from '../../assets/icons/HeartIcon';
+import BackIcon from '../../assets/icons/chaticons/BackIcon';
 //modals
 import CommentsModal from '../../modals/CommentsModal';
 import ShareModal from '../../modals/ShareModal';
 //firebase
-import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, collection,orderBy, query, where, onSnapshot, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { Video } from 'expo-av';
 
 const { width: screenWidth } = Dimensions.get('window');
-
 const timeAgo = (timestamp) => {
   const now = new Date();
   const postDate = timestamp.toDate();
@@ -42,14 +42,18 @@ const timeAgo = (timestamp) => {
   }
 };
 
-const UserPosts = ({ route, user}) => {
-  const { selectedPostId, userId } = route.params;
+const UserPosts = ({route, navigation, user }) => {
+  const { selectedPostId: routeSelectedPostId, userId } = route.params;
   const [posts, setPosts] = useState([]);
   const [focusedPostIndex, setFocusedPostIndex] = useState(null);
   const [loading, setLoading] = useState(true);
   const firestore = getFirestore();
   const storage = getStorage();
   const scrollX = useRef(new Animated.Value(0)).current;
+  const flatListRef = useRef(null); // FlatList için ref tanımlıyoruz
+  const [headerUser, setHeaderUser] = useState(null);
+  const [selectedPostId, setSelectedPostId] = useState(null); // `selectedPostId` state tanımlandı
+
   //modals
   const [menuVisible, setMenuVisible] = useState(false);
   const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
@@ -57,8 +61,8 @@ const UserPosts = ({ route, user}) => {
   const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
 
   const handleCommentPress = (postId) => {
-    setSelectedPostId(postId); // Burada postId'yi ayarlıyoruz
-    setIsCommentsModalVisible(true); // Yorum modalını açmak için değiştirin
+    setSelectedPostId(postId); // `postId`'yi güncelleyerek ilgili yorumları açar
+    setIsCommentsModalVisible(true); // Yorum modalını açar
   };
 
   const handleSharePress = () => {
@@ -71,12 +75,40 @@ const UserPosts = ({ route, user}) => {
   const closeShareModal = () => {
     setIsShareModalVisible(false);
   };
-
-
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const userRef = doc(firestore, 'userInfo', userId);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        setHeaderUser(userSnap.data());
+      } else {
+        console.log('Kullanıcı bulunamadı.');
+      }
+    };
+    fetchUserData();
+  }, [userId]);
+  useEffect(() => {
+    if (focusedPostIndex !== null && flatListRef.current) {
+      // scroll işlemini biraz geciktiriyoruz
+      setTimeout(() => {
+        try {
+          flatListRef.current.scrollToIndex({
+            index: focusedPostIndex,
+            animated: true,
+            viewPosition: -0.7, // Post'u ekranın ortasında konumlandırmak için
+          });
+        } catch (error) {
+          console.warn("Scrolling to index failed", error); // Hata olursa yakala
+        }
+      }, 300); // 300 ms gecikme
+    }
+  }, [focusedPostIndex]);
+  
   useEffect(() => {
     const postsQuery = query(
       collection(firestore, 'posts'),
-      where('userId', '==', userId)
+      where('userId', '==', userId),
+      orderBy('timestamp', 'desc') // timestamp alanına göre azalan sırada sıralama
     );
   
     const unsubscribe = onSnapshot(postsQuery, (querySnapshot) => {
@@ -96,6 +128,7 @@ const UserPosts = ({ route, user}) => {
   
     return () => unsubscribe();
   }, [userId, selectedPostId]);
+  
   const handleLike = async (postId) => {
     if (!user || !user.username) return;
 
@@ -234,15 +267,15 @@ const UserPosts = ({ route, user}) => {
         </View>
 
         <View style={styles.iconRow}>
-          <TouchableOpacity style={styles.button}>
+          <TouchableOpacity style={styles.button} onPress={() => handleLike(item.id)}>
             <HeartIcon color={item.likedBy?.includes(user?.username) ? 'red' : 'white'} />
             <Text style={styles.countText}>{item.likes}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} >
+          <TouchableOpacity style={styles.button} onPress={() => handleCommentPress(item.id)} >
             <CommentIcon />
             <Text style={styles.countText}>{item.commentsCount}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} >
+          <TouchableOpacity style={styles.button} onPress={handleSharePress} >
             <SendIcon />
             <Text style={styles.countText}>{item.shares}</Text>
           </TouchableOpacity>
@@ -267,15 +300,61 @@ const UserPosts = ({ route, user}) => {
   }
 
   return (
+    <View style={{ flex: 1, backgroundColor:'#fff'}}>
+   <View style={styles.header}>
+  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backIcon}>
+    <BackIcon />
+  </TouchableOpacity>
+  <View style={styles.headerContent}>
+    <Text style={styles.username}>
+      {`${headerUser?.username?.toUpperCase() || 'KULLANICI ADI'}`}
+    </Text>
+    <Text style={styles.subTitle}>Paylaşımlar</Text>
+  </View>
+</View>
     <FlatList
+      ref={flatListRef} // FlatList'e ref ekliyoruz
       data={posts}
       renderItem={renderPost}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.contentContainer}
+      getItemLayout={(data, index) => (
+        { length: screenWidth, offset: screenWidth * index, index }
+      )}
     />
+  </View>
   );
 };
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff', // Header arka plan rengi
+    marginTop:25,
+  },
+  backIcon: {
+    marginRight: 10,
+    marginTop:20,
+  },
+  headerContent: {
+    flexDirection: 'column',
+    marginTop:10,
+    alignItems:'center',
+    marginLeft:110
+  },
+  username: {
+    fontSize: 16,
+    color: '#000',
+    fontFamily: 'ms-light',
+    
+  },
+  subTitle: {
+    fontSize: 14,
+    color: '#333', // Alt başlık rengi
+    fontFamily: 'ms-bold',
+  },
 postContainer: {
   marginVertical: 15,
   paddingHorizontal: 18,
