@@ -6,10 +6,13 @@ import { db, storage } from '../firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
+//expo
+import * as Font from 'expo-font';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Audio } from 'expo-av'; // Ses kaydı ve oynatma için
 import { Animated } from 'react-native';
+
 //icons
 import BackIcon from '../assets/icons/chaticons/BackIcon';
 import VideoCallIcon from '../assets/icons/chaticons/VideoCallIcon';

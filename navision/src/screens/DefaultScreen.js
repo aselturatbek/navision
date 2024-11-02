@@ -6,6 +6,8 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 //components
 import TopNavigation from '../navigation/TopNavigation';
 import SideMenu from '../components/SideMenu';
+//expo
+import * as Font from 'expo-font';
 
 const DefaultScreen = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);

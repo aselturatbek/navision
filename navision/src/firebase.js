@@ -2,7 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, CACHE_SIZE_UNLIMITED, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -20,7 +20,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
-const db = getFirestore(app);
+
+// Firestore'u optimize edilmiş ayarlarla başlat
+const db = initializeFirestore(app, {
+  cacheSizeBytes: CACHE_SIZE_UNLIMITED // Bellek boyutunu sınırsız olarak ayarlar
+});
+
+// Çevrimdışı desteği etkinleştir
+enableIndexedDbPersistence(db).catch((error) => {
+  console.warn("IndexedDB Persistence özelliği etkinleştirilemedi:", error);
+});
+
 const storage = getStorage(app);
 
-export { auth,database, db, storage};
+export { auth, database, db, storage };

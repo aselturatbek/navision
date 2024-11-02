@@ -5,6 +5,8 @@ import { getFirestore, doc, onSnapshot, collection } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 //components
 import TopNavigation from '../navigation/TopNavigation';
+//expo
+import * as Font from 'expo-font';
 const SearchScreen = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);

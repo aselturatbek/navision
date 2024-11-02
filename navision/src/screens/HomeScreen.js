@@ -11,6 +11,8 @@ import StoryFeed from '../components/StoryFeed';
 import PostFeed from '../components/PostFeed';
 import TopNavigation from '../navigation/TopNavigation';
 import SideMenu from '../components/SideMenu';
+//expo
+import * as Font from 'expo-font';
 
 const HomeScreen = () => {
   const [user, setUser] = useState(null);

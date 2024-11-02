@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, TextInput, Button, Alert, StyleSheet, Text, Image, ScrollView, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { auth } from '../firebase';
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, writeBatch } from 'firebase/firestore';
-import { getDatabase, ref, set } from 'firebase/database';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -23,7 +22,6 @@ const EditProfile = ({ route }) => {
   });
   const [loading, setLoading] = useState(false); // Loading state
   const firestore = getFirestore();
-  const database = getDatabase();
   const storage = getStorage();
 
   useEffect(() => {
@@ -80,21 +78,20 @@ const EditProfile = ({ route }) => {
     setLoading(true); // Start loading
     const userId = auth.currentUser.uid;
     const user = auth.currentUser;
-
+  
     try {
       if (userInfo.email !== user.email) {
         await user.updateEmail(userInfo.email);
         await user.sendEmailVerification();
         Alert.alert("Başarılı", "E-posta adresi güncellendi ve doğrulama e-postası gönderildi. Lütfen e-posta adresinizi kontrol edin.");
       }
-
+  
       await setDoc(doc(firestore, 'userInfo', userId), userInfo);
-      await set(ref(database, 'userInfo/' + userId), userInfo);
-
+  
       // Posts koleksiyonundaki gönderileri güncelle
       await updatePosts(userId, userInfo.username, userInfo.profileImage);
       await updateStories(userId, userInfo.username, userInfo.profileImage);
-
+  
       Alert.alert("Başarılı", "Profil başarıyla güncellendi.", [
         { text: "Tamam", onPress: () => {
             onUpdate(userInfo);
@@ -108,6 +105,7 @@ const EditProfile = ({ route }) => {
       setLoading(false); // End loading
     }
   };
+  
 
   const selectProfileImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -115,39 +113,42 @@ const EditProfile = ({ route }) => {
       Alert.alert('İzin verilmedi', 'Resim seçmek için izin gerekli.');
       return;
     }
-
+  
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.5,
     });
-
+  
     if (!result.canceled) {
       const source = result.assets[0].uri;
-
-      // Firebase Storage'a resmi yüklemeden önce eski resmi sil
-      if (userInfo.profileImage) {
-        const oldImageRef = storageRef(storage, userInfo.profileImage);
-        try {
-          await deleteObject(oldImageRef);
-        } catch (error) {
-          console.log('Eski resmi silerken hata oluştu:', error);
-        }
-      }
-
+  
+      // Eski resmi silmeden önce yeni resmi yükle
       const uniqueFileName = `profileImages/${auth.currentUser.uid}_${Date.now()}.jpg`;
       const response = await fetch(source);
       const blob = await response.blob();
       const imageRef = storageRef(storage, uniqueFileName);
-      
+  
       setLoading(true); // Start loading for image upload
       try {
         await uploadBytes(imageRef, blob);
         const downloadURL = await getDownloadURL(imageRef);
+        
+        // userInfo güncelle ve onUpdate çağır
         const updatedUserInfo = { ...userInfo, profileImage: downloadURL };
         setUserInfo(updatedUserInfo);
         onUpdate(updatedUserInfo);
+  
+        // Eski resmi sil
+        if (userInfo.profileImage) {
+          const oldImageRef = storageRef(storage, userInfo.profileImage);
+          try {
+            await deleteObject(oldImageRef);
+          } catch (error) {
+            console.warn('Eski resmi silerken hata oluştu:', error);
+          }
+        }
       } catch (error) {
         Alert.alert("Hata", "Resim yüklenirken bir hata oluştu: " + error.message);
       } finally {
@@ -157,7 +158,7 @@ const EditProfile = ({ route }) => {
       console.log('Kullanıcı resmi seçmeyi iptal etti.');
     }
   };
-
+  
   return (
     <KeyboardAvoidingView
       style={styles.container}

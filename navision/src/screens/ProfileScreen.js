@@ -10,7 +10,9 @@ import EditIcon from '../assets/icons/profileicons/EditIcon';
 import ReservationIcon from '../assets/icons/profileicons/ReservationIcon';
 import CarouselIcon from '../assets/icons/profileicons/CarouselIcon';
 //components
-import TopNavigation from '../components/TopNavigation';
+import TopNavigation from '../navigation/TopNavigation';
+//expo
+import * as Font from 'expo-font';
 
 
 const ProfileScreen = () => {
@@ -155,14 +157,11 @@ const ProfileScreen = () => {
 
   const renderGridItem = ({ item }) => (
     <TouchableOpacity
-      onLongPress={() => {
-        setSelectedPost(item); // Seçilen post verisini ayarla
-        setPopupVisible(true); // Popup'u göster
-      }}
+      onPress={() => navigation.navigate('UserPosts', { selectedPostId: item.id, userId: currentUser.uid })}
       style={styles.gridItem}
     >
       <Image
-        source={{ uri: item.mediaUrls?.[0] || 'https://via.placeholder.com/150' }} // İlk medyayı göster
+        source={{ uri: item.mediaUrls?.[0] || 'https://via.placeholder.com/150' }}
         style={{ width: '100%', height: '100%', borderRadius: 10 }}
       />
       {item.mediaUrls && item.mediaUrls.length > 1 && (
@@ -172,6 +171,7 @@ const ProfileScreen = () => {
       )}
     </TouchableOpacity>
   );
+  
 
   if (!userInfo) {
     return <Text>Loading...</Text>; // Veriler yüklenirken gösterilecek
