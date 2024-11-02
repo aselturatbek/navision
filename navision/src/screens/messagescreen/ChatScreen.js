@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { db, storage } from '../firebase'; 
+import { db, storage } from '../../firebase'; 
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
@@ -14,12 +14,12 @@ import { Audio } from 'expo-av'; // Ses kaydı ve oynatma için
 import { Animated } from 'react-native';
 
 //icons
-import BackIcon from '../assets/icons/chaticons/BackIcon';
-import VideoCallIcon from '../assets/icons/chaticons/VideoCallIcon';
-import PhoneIcon from '../assets/icons/chaticons/PhoneIcon';
-import SendMessage from '../assets/icons/chaticons/SendMessage';
-import VoiceMessage from '../assets/icons/chaticons/VoiceMessage';
-import CameraIcon from '../assets/icons/chaticons/CameraIcon';
+import BackIcon from '../../assets/icons/chaticons/BackIcon';
+import VideoCallIcon from '../../assets/icons/chaticons/VideoCallIcon';
+import PhoneIcon from '../../assets/icons/chaticons/PhoneIcon';
+import SendMessage from '../../assets/icons/chaticons/SendMessage';
+import VoiceMessage from '../../assets/icons/chaticons/VoiceMessage';
+import CameraIcon from '../../assets/icons/chaticons/CameraIcon';
 
 const ChatScreen = ({ route,navigation }) => {
   const { user } = route.params;

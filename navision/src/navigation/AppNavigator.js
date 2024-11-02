@@ -12,7 +12,7 @@ import LoginScreen from '../entry/LoginScreen';
 import RegisterScreen from '../entry/RegisterScreen';
 import EditProfile from '../components/EditProfile';
 import StoryUpload from '../mediaupload/StoryUpload';
-import ChatScreen from '../screens/ChatScreen';
+import ChatScreen from '../screens/messagescreen/ChatScreen';
 import UserPosts from '../screens/profilescreen/UserPosts';
 //firebase
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
