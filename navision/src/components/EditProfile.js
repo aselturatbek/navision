@@ -123,36 +123,36 @@ const EditProfile = ({ route }) => {
   
     if (!result.canceled) {
       const source = result.assets[0].uri;
-  
-      // Eski resmi silmeden önce yeni resmi yükle
       const uniqueFileName = `profileImages/${auth.currentUser.uid}_${Date.now()}.jpg`;
-      const response = await fetch(source);
-      const blob = await response.blob();
-      const imageRef = storageRef(storage, uniqueFileName);
-  
-      setLoading(true); // Start loading for image upload
+      
+      // Resmi önce küçük bir versiyona dönüştürmeyi dene
       try {
+        const response = await fetch(source);
+        const blob = await response.blob();
+  
+        setLoading(true); // Yükleme başlıyor
+        const imageRef = storageRef(storage, uniqueFileName);
+  
+        // Yeni resmi yükle
         await uploadBytes(imageRef, blob);
         const downloadURL = await getDownloadURL(imageRef);
-        
-        // userInfo güncelle ve onUpdate çağır
-        const updatedUserInfo = { ...userInfo, profileImage: downloadURL };
-        setUserInfo(updatedUserInfo);
-        onUpdate(updatedUserInfo);
+  
+        // Güncellenen resmi state'e ekle
+        setUserInfo({ ...userInfo, profileImage: downloadURL });
   
         // Eski resmi sil
         if (userInfo.profileImage) {
           const oldImageRef = storageRef(storage, userInfo.profileImage);
-          try {
-            await deleteObject(oldImageRef);
-          } catch (error) {
-            console.warn('Eski resmi silerken hata oluştu:', error);
-          }
+          await deleteObject(oldImageRef).catch(error => {
+            console.warn('Eski resmi silerken hata oluştu:', error.message);
+          });
         }
+        
       } catch (error) {
-        Alert.alert("Hata", "Resim yüklenirken bir hata oluştu: " + error.message);
+        console.error('Resim yüklenirken hata oluştu:', error.message);
+        Alert.alert("Hata", "Resim yüklenirken bir hata oluştu. Lütfen tekrar deneyin.");
       } finally {
-        setLoading(false); // End loading
+        setLoading(false); // Yükleme bitiyor
       }
     } else {
       console.log('Kullanıcı resmi seçmeyi iptal etti.');

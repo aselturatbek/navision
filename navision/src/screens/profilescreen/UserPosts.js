@@ -58,7 +58,7 @@ const UserPosts = ({route, navigation, user }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
   const [isShareModalVisible, setIsShareModalVisible] = useState(false);
-  const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
+ 
 
   const handleCommentPress = (postId) => {
     setSelectedPostId(postId); // `postId`'yi güncelleyerek ilgili yorumları açar
@@ -75,6 +75,10 @@ const UserPosts = ({route, navigation, user }) => {
   const closeShareModal = () => {
     setIsShareModalVisible(false);
   };
+  useEffect(() => {
+    console.log("Selected Post ID:", selectedPostId); // postId değerini kontrol ediyoruz
+    console.log("User:", user); // user değerini kontrol ediyoruz
+  }, [selectedPostId, user]);
   useEffect(() => {
     const fetchUserData = async () => {
       const userRef = doc(firestore, 'userInfo', userId);
@@ -130,36 +134,44 @@ const UserPosts = ({route, navigation, user }) => {
   }, [userId, selectedPostId]);
   
   const handleLike = async (postId) => {
-    if (!user || !user.username) return;
-
+    if (!user || !user.username) return; // Kullanıcı oturumunu kontrol et
+  
     const currentUser = user.username;
     const postRef = doc(firestore, 'posts', postId);
-
-    const postDoc = await getDoc(postRef);
-    const postData = postDoc.data();
-    const likedBy = postData.likedBy || [];
-
-    const isLiked = likedBy.includes(currentUser);
-
-    let updatedLikedBy;
-    if (isLiked) {
-      updatedLikedBy = likedBy.filter(username => username !== currentUser);
-    } else {
-      updatedLikedBy = [...likedBy, currentUser];
+  
+    try {
+      const postDoc = await getDoc(postRef);
+      const postData = postDoc.data();
+      const likedBy = postData.likedBy || [];
+  
+      const isLiked = likedBy.includes(currentUser);
+      let updatedLikedBy;
+  
+      // Kullanıcı daha önce beğenmişse, beğenisini geri alır
+      if (isLiked) {
+        updatedLikedBy = likedBy.filter(username => username !== currentUser);
+      } else {
+        // Beğenmemişse, beğeniyi ekler
+        updatedLikedBy = [...likedBy, currentUser];
+      }
+  
+      // Firebase'de `likedBy` listesini ve `likes` sayısını güncelle
+      await updateDoc(postRef, {
+        likedBy: updatedLikedBy,
+        likes: updatedLikedBy.length,
+      });
+  
+      // Yerel `posts` durumunu güncelle
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId ? { ...post, likedBy: updatedLikedBy, likes: updatedLikedBy.length } : post
+        )
+      );
+    } catch (error) {
+      console.error("Error updating like: ", error);
     }
-
-    await updateDoc(postRef, {
-      likedBy: updatedLikedBy,
-      likes: updatedLikedBy.length,
-    });
-
-    setPosts(prevPosts =>
-      prevPosts.map(post =>
-        post.id === postId ? { ...post, isLiked: !isLiked } : post
-      )
-    );
   };
-
+  
   const renderMediaItem = ({ item }) => {
     if (!item) return null;
   
@@ -302,7 +314,7 @@ const UserPosts = ({route, navigation, user }) => {
   return (
     <View style={{ flex: 1, backgroundColor:'#fff'}}>
    <View style={styles.header}>
-  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backIcon}>
+  <TouchableOpacity  onPress={() => navigation.navigate('Profile')} style={styles.backIcon}>
     <BackIcon />
   </TouchableOpacity>
   <View style={styles.headerContent}>
@@ -333,21 +345,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: '#fff', // Header arka plan rengi
     marginTop:25,
+    justifyContent:'center',
   },
   backIcon: {
-    marginRight: 10,
-    marginTop:20,
+    position:'absolute',
+    left:25,
+    top:30,
   },
   headerContent: {
     flexDirection: 'column',
     marginTop:10,
     alignItems:'center',
-    marginLeft:110
   },
   username: {
     fontSize: 16,
     color: '#000',
     fontFamily: 'ms-light',
+   
     
   },
   subTitle: {

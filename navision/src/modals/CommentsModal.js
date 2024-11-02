@@ -102,21 +102,21 @@ const CommentsModal = ({ visible, onClose, postId, user }) => {
 
   const submitReplyOrComment = async () => {
     if (!user || !newComment.trim()) return;
-
+  
     if (selectedComment) {
-      // Eğer bir yoruma yanıt veriliyorsa
+      // Yanıt ekleniyor
       const newReply = {
         username: user.username || 'username',
         profileImage: user.profileImage || 'https://via.placeholder.com/150',
-        reply: newComment.replace(`@${user.username} `, ''), // Yanıt metnini etiketsiz olarak kaydedelim
+        reply: newComment.replace(`@${user.username} `, ''), // Yanıt metnini etiketsiz olarak kaydediyoruz
         timestamp: new Date(),
       };
-
+  
       try {
         const postRef = doc(firestore, 'posts', postId);
         const postDoc = await getDoc(postRef);
         const postData = postDoc.data();
-
+  
         const updatedComments = postData.commentedBy.map((c) => {
           if (c.comment === selectedComment) {
             return {
@@ -127,17 +127,17 @@ const CommentsModal = ({ visible, onClose, postId, user }) => {
           }
           return c;
         });
-
+  
         await updateDoc(postRef, { commentedBy: updatedComments });
         setComments(updatedComments);
-        setNewComment(''); // Yanıtı gönderdikten sonra input'u temizle.
-        setSelectedComment(null); // Yanıtlanan yorumu temizle.
+        setNewComment('');
+        setSelectedComment(null);
       } catch (error) {
         console.error('Yanıt eklenirken hata oluştu:', error);
         Alert.alert('Hata', 'Yanıt eklenirken bir hata oluştu.');
       }
     } else {
-      // Eğer direkt bir yorum yazılıyorsa
+      // Yorum ekleniyor
       const newCommentData = {
         username: user.username || 'username',
         profileImage: user.profileImage || 'https://via.placeholder.com/150',
@@ -147,16 +147,16 @@ const CommentsModal = ({ visible, onClose, postId, user }) => {
         replies: 0,
         repliedBy: [],
       };
-
+  
       try {
         const postRef = doc(firestore, 'posts', postId);
         const postDoc = await getDoc(postRef);
-
+  
         await updateDoc(postRef, {
           commentedBy: arrayUnion(newCommentData),
           commentsCount: postDoc.data().commentsCount + 1,
         });
-
+  
         setComments((prevComments) => [newCommentData, ...prevComments].sort(sortComments));
         setNewComment('');
       } catch (error) {
@@ -165,6 +165,7 @@ const CommentsModal = ({ visible, onClose, postId, user }) => {
       }
     }
   };
+  
 
   const sortComments = (a, b) => {
     if (b.likes === a.likes) {
