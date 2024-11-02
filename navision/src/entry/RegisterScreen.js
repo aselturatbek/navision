@@ -27,7 +27,8 @@ const RegisterScreen = () => {
   const [selectedGender, setSelectedGender] = useState({ erkek: false, kadın: false, diğer: false }); // Checkbox durumları
   const [loading, setLoading] = useState(false); 
   const [formattedPhoneNumber, setFormattedPhoneNumber] = useState(''); // Formatted phone number state
-  
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleGenderChange = (type) => {
     const newSelectedGender = { erkek: false, kadın: false, diğer: false };
@@ -301,29 +302,43 @@ const RegisterScreen = () => {
               ref={emailInputRef}
               returnKeyType="next"
               keyboardType="email-address"  // E-posta için klavye tipi
-              onSubmitEditing={() => passwordInputRef.current.focus()}
+              onSubmitEditing={() => passwordInputRef.current?.focus()}
               blurOnSubmit={false}
             />
             <Text style={styles.labelText}>Şifre</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Şifre"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              returnKeyType="done"
-              
-              blurOnSubmit={false}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.inputPassword}
+                placeholder="Şifre"
+                secureTextEntry={!showPassword}
+                value={password}
+                ref={passwordInputRef}
+                onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
+                onChangeText={setPassword}
+                returnKeyType="done"
+                blurOnSubmit={false}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Icon name={showPassword ? 'eye-off' : 'eye'} size={20} color="#007BFF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Şifreyi Onayla Alanı */}
             <Text style={styles.labelText}>Şifre Onayla</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Şifreni Onayla"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              returnKeyType="done"
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.inputPassword}
+                placeholder="Şifreni Onayla"
+                secureTextEntry={!showConfirmPassword}
+                value={confirmPassword}
+                ref={confirmPasswordInputRef}
+                onChangeText={setConfirmPassword}
+                returnKeyType="done"
+              />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <Icon name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color="#007BFF" />
+              </TouchableOpacity>
+            </View>
             <TouchableOpacity style={styles.button} onPress={registerUser} disabled={loading}>
               {loading ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -403,6 +418,28 @@ const styles = StyleSheet.create({
     marginLeft: 1,
   },
   input: {
+    flex: 1,
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 15,
+    fontFamily: 'ms-regular',
+  },
+  inputPassword: {
+    flex: 1,
+    height: 40,
+    fontFamily: 'ms-regular',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 15,
     height: 40,
     borderColor: '#ddd',
     borderWidth: 1,
