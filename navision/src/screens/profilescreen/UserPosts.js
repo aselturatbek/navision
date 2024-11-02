@@ -10,11 +10,16 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
+//icons
 import SaveIcon from '../../assets/icons/SaveIcon';
 import LocationIcon from '../../assets/icons/LocationIcon';
 import CommentIcon from '../../assets/icons/CommentIcon';
 import SendIcon from '../../assets/icons/SendIcon';
 import HeartIcon from '../../assets/icons/HeartIcon';
+//modals
+import CommentsModal from '../../modals/CommentsModal';
+import ShareModal from '../../modals/ShareModal';
+//firebase
 import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { Video } from 'expo-av';
@@ -37,7 +42,7 @@ const timeAgo = (timestamp) => {
   }
 };
 
-const UserPosts = ({ route, user, handleCommentPress, handleSharePress }) => {
+const UserPosts = ({ route, user}) => {
   const { selectedPostId, userId } = route.params;
   const [posts, setPosts] = useState([]);
   const [focusedPostIndex, setFocusedPostIndex] = useState(null);
@@ -45,6 +50,28 @@ const UserPosts = ({ route, user, handleCommentPress, handleSharePress }) => {
   const firestore = getFirestore();
   const storage = getStorage();
   const scrollX = useRef(new Animated.Value(0)).current;
+  //modals
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
+  const [isShareModalVisible, setIsShareModalVisible] = useState(false);
+  const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
+
+  const handleCommentPress = (postId) => {
+    setSelectedPostId(postId); // Burada postId'yi ayarlıyoruz
+    setIsCommentsModalVisible(true); // Yorum modalını açmak için değiştirin
+  };
+
+  const handleSharePress = () => {
+    setIsShareModalVisible(true);
+  };
+  const closeCommentsModal = () => {
+    setIsCommentsModalVisible(false);
+  };
+
+  const closeShareModal = () => {
+    setIsShareModalVisible(false);
+  };
+
 
   useEffect(() => {
     const postsQuery = query(
@@ -207,19 +234,26 @@ const UserPosts = ({ route, user, handleCommentPress, handleSharePress }) => {
         </View>
 
         <View style={styles.iconRow}>
-          <TouchableOpacity style={styles.button} onPress={() => handleLike(item.id)}>
+          <TouchableOpacity style={styles.button}>
             <HeartIcon color={item.likedBy?.includes(user?.username) ? 'red' : 'white'} />
             <Text style={styles.countText}>{item.likes}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => handleCommentPress(item.id)}>
+          <TouchableOpacity style={styles.button} >
             <CommentIcon />
             <Text style={styles.countText}>{item.commentsCount}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={handleSharePress}>
+          <TouchableOpacity style={styles.button} >
             <SendIcon />
             <Text style={styles.countText}>{item.shares}</Text>
           </TouchableOpacity>
         </View>
+        <CommentsModal
+            visible={isCommentsModalVisible}
+            onClose={closeCommentsModal}
+            postId={selectedPostId}
+            user={user}
+          />
+          <ShareModal visible={isShareModalVisible} onClose={closeShareModal} />
       </View>
     </View>
   );
