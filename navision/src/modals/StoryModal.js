@@ -34,6 +34,15 @@ const timeAgo = (timestamp) => {
 const StoryModal = ({ visible, onClose, stories }) => {
   const videoRef = useRef(null);
 
+  // 24 saat içinde oluşturulmuş story'leri filtreleme
+  const currentTime = new Date().getTime();
+  const twentyFourHoursInMillis = 24 * 60 * 60 * 1000;
+
+  const filteredStories = stories.filter((story) => {
+    const storyTime = story.timestamp.toMillis();
+    return currentTime - storyTime < twentyFourHoursInMillis;
+  });
+
   const renderStoryItem = ({ item }) => (
     <View style={styles.storyContainer}>
       <View style={styles.header}>
@@ -47,7 +56,7 @@ const StoryModal = ({ visible, onClose, stories }) => {
       {item.mediaUrls && item.mediaUrls[0].endsWith('.mp4') ? (
         <Video
           ref={videoRef}
-          source={{ uri: item.mediaUrls[0] }} // İlk medya URL'sini kullan
+          source={{ uri: item.mediaUrls[0] }}
           style={styles.media}
           resizeMode="cover"
           shouldPlay
@@ -75,7 +84,7 @@ const StoryModal = ({ visible, onClose, stories }) => {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <FlatList
-        data={stories}
+        data={filteredStories} // Filtrelenmiş story'leri kullanıyoruz
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}

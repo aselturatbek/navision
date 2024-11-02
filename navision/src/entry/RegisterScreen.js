@@ -286,7 +286,7 @@ const RegisterScreen = () => {
             <Text style={styles.labelText}>Kullanıcı Adı</Text>
             <TextInput
               style={styles.input}
-              placeholder="username"
+              placeholder="kullanıcı adı"
               value={username}
               onChangeText={handleUsernameChange}
               returnKeyType="next"
