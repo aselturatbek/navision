@@ -13,8 +13,7 @@ const ChatItem = ({ item }) => {
   const navigation = useNavigation();
 
   const handlePress = () => {
-    console.log("Tıklanan kullanıcının userId'si:", item.userId); // userId'yi konsola yazdır
-    navigation.navigate('ChatScreen', { user: item }); // Sonra ChatScreen'e geçiş yap
+    navigation.navigate('ChatScreen', { user: item });
   };
 
   return (
@@ -27,6 +26,8 @@ const ChatItem = ({ item }) => {
             <Text style={styles.chatTime}>{item.time}</Text>
           </View>
           <Text style={styles.chatMessage} numberOfLines={1}>{item.message}</Text>
+          {/* Okunmamış mesaj göstergesi */}
+          {item.hasUnreadMessage && <View style={styles.unreadIndicator} />}
         </View>
       </View>
       <View style={styles.shortDivider} />
@@ -37,11 +38,10 @@ const ChatItem = ({ item }) => {
 const ChatsComponent = () => {
   const [users, setUsers] = useState([]);
 
-  // Firestore'dan kullanıcıları ve sohbet bilgilerini anlık olarak çekme fonksiyonu
   const fetchUsers = async () => {
     try {
       const auth = getAuth();
-      const currentUser = auth.currentUser; 
+      const currentUser = auth.currentUser;
       if (!currentUser) {
         console.error('Kullanıcı oturum açmamış.');
         return;
@@ -53,8 +53,11 @@ const ChatsComponent = () => {
       const unsubscribe = onSnapshot(q, async (snapshot) => {
         const usersList = {};
   
-        for (const chatDoc of snapshot.docs) {
+        // Tüm getDoc işlemlerini beklemek için Promise.all kullanıyoruz
+        await Promise.all(snapshot.docs.map(async (chatDoc) => {
           const chatData = chatDoc.data();
+        
+  
           const otherUsers = chatData.users.filter(userId => userId !== currentUser.uid);
   
           for (const otherUserId of otherUsers) {
@@ -64,6 +67,9 @@ const ChatsComponent = () => {
             const userSnapshot = await getDoc(userRef);
             if (userSnapshot.exists()) {
               const userData = userSnapshot.data();
+  
+              const hasUnreadMessage = chatData.unreadMessages > 0 && chatData.lastMessageSender !== currentUser.uid;
+  
               usersList[otherUserId] = {
                 id: otherUserId,
                 userId: otherUserId,
@@ -73,20 +79,22 @@ const ChatsComponent = () => {
                 time: chatData.lastMessageTimestamp 
                   ? chatData.lastMessageTimestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
                   : '',
-                lastMessageTimestamp: chatData.lastMessageTimestamp || null, // Sıralama için saklanıyor
+                hasUnreadMessage,
+                lastMessageTimestamp: chatData.lastMessageTimestamp || null,
               };
             }
           }
-        }
+        }));
   
-        // Kullanıcıları `lastMessageTimestamp`'e göre sıralıyoruz
+        // Tüm işlemler tamamlandıktan sonra kullanıcıları sıralayıp güncelliyoruz
         const sortedUsers = Object.values(usersList).sort((a, b) => {
           if (!a.lastMessageTimestamp) return 1;
           if (!b.lastMessageTimestamp) return -1;
-          return b.lastMessageTimestamp.toMillis() - a.lastMessageTimestamp.toMillis(); // Zaman damgasına göre sıralama
+          return b.lastMessageTimestamp.toMillis() - a.lastMessageTimestamp.toMillis();
         });
   
-        setUsers(sortedUsers); // Sıralanmış kullanıcı listesini güncelliyoruz
+        setUsers(sortedUsers);
+        
       });
   
       return () => unsubscribe();
@@ -99,14 +107,19 @@ const ChatsComponent = () => {
     fetchUsers();
   }, []);
 
+  const renderItem = ({ item }) => {
+    return <ChatItem item={item} />;
+  };
+  
   return (
     <FlatList
       data={users}
-      renderItem={({ item }) => <ChatItem item={item} />}
-      keyExtractor={item => item.id} // Benzersiz key olarak userId kullanılıyor
+      renderItem={renderItem}
+      keyExtractor={(item) => item.id}
       showsVerticalScrollIndicator={false}
     />
   );
+  
 };
 
 const styles = StyleSheet.create({
@@ -117,6 +130,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     width: Dimensions.get('window').width - 40,
     marginLeft: 8,
+  },
+  unreadIndicator: {
+    width:18,
+    height:18,
+    borderRadius: 9,
+    backgroundColor: '#007BFF',
+    position: 'absolute',
+    top: 17,
+    right: -12,
   },
   shortDivider: {
     height: 1,

@@ -111,7 +111,7 @@ const AppNavigator = () => {
           <Stack.Screen name="EditProfile" component={EditProfile} options={{ headerShown: false }} />
           <Stack.Screen name="StoryUpload" component={StoryUpload} options={{ headerShown: false }} />
           <Stack.Screen name="ChatScreen" component={ChatScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="UserPosts" component={UserPosts} options={{ headerShown: false }} />
+          <Stack.Screen name="UserPosts" component={UserPosts} options={{ headerShown: false,gestureEnabled: true }} />
 
         </Stack.Navigator>
       </View>

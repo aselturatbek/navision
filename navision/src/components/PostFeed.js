@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
+  ScrollView,
   ActivityIndicator,
   Dimensions,
   Animated,
@@ -143,22 +144,22 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
 
   const renderCarousel = (mediaUrls) => (
     <View style={{ position: 'relative' }}>
-      <FlatList
-        data={mediaUrls}
+      <ScrollView
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        decelerationRate="fast" // Hızlı durması için
-        snapToAlignment="center" // Slaytların hizalanmasını sağlar
-        snapToInterval={screenWidth - 35} 
-        renderItem={({ item }) => renderMediaItem({ item })}
-        keyExtractor={(item, index) => index.toString()}
-        contentContainerStyle={styles.carouselContainer}
+        decelerationRate="fast"
+        snapToAlignment="center"
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           { useNativeDriver: false }
         )}
-      />
+        contentContainerStyle={styles.carouselContainer}
+      >
+        {mediaUrls.map((item, index) => (
+          <View key={index.toString()}>{renderMediaItem({ item })}</View>
+        ))}
+      </ScrollView>
       <View style={styles.dotsContainer}>
         {mediaUrls.map((_, index) => {
           const inputRange = [
@@ -189,8 +190,6 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
     </View>
   );
   
-  
-
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
       <View style={styles.mediaWrapper}>

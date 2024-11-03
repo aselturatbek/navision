@@ -83,7 +83,6 @@ const ChatScreen = ({ route,navigation }) => {
       isRead: false,
     };
   
-    // Medya dosyası varsa işleyelim
     if (selectedMedia) {
       const response = await fetch(selectedMedia);
       const blob = await response.blob();
@@ -94,7 +93,6 @@ const ChatScreen = ({ route,navigation }) => {
       setSelectedMedia(null);
     }
   
-    // Eğer ses kaydı varsa
     if (recordedUri) {
       const response = await fetch(recordedUri);
       const blob = await response.blob();
@@ -109,19 +107,21 @@ const ChatScreen = ({ route,navigation }) => {
       // Mesajı 'Chats' koleksiyonuna ekle
       await addDoc(collection(db, 'Chats', chatId, 'Messages'), messageData);
   
-      // 'chats' koleksiyonunu güncelle: son mesaj ve zaman damgası
+      // 'chats' koleksiyonundaki son mesaj ve zaman damgasını güncelle
       const chatRef = doc(db, 'chats', chatId);
       await setDoc(chatRef, {
-        lastMessage: newMessage || 'Medya gönderildi',  // Son mesajı kaydet
-        lastMessageTimestamp: serverTimestamp(),  // Mesajın gönderildiği zamanı kaydet
+        lastMessage: messageData.text || 'Medya gönderildi',
+        lastMessageTimestamp: serverTimestamp(),
         users: [currentUser.uid, user.userId],
-      }, { merge: true }); // Eğer sohbet varsa güncelle, yoksa ekle
+        lastMessageSender: currentUser.uid
+      }, { merge: true });
   
-      setNewMessage(''); // Mesaj gönderildikten sonra input temizlenir
+      setNewMessage('');
     } catch (error) {
       console.error("Mesaj gönderilirken hata oluştu:", error);
     }
   };
+  
   // Medya seçme fonksiyonu
   const pickMedia = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({

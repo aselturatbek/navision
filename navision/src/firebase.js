@@ -1,9 +1,10 @@
 // firebase.js
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
-import { initializeFirestore, CACHE_SIZE_UNLIMITED, enableIndexedDbPersistence } from 'firebase/firestore';
+import { initializeFirestore, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBiRRfEjwKlXh8Ouu4RU67-SFI_I4gA8HI",
@@ -18,19 +19,23 @@ const firebaseConfig = {
 
 // Firebase'i başlat
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+
+// Firebase Auth için AsyncStorage persistence ekleme
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
+
+// Firebase Database başlat
 const database = getDatabase(app);
 
 // Firestore'u optimize edilmiş ayarlarla başlat
 const db = initializeFirestore(app, {
-  cacheSizeBytes: CACHE_SIZE_UNLIMITED // Bellek boyutunu sınırsız olarak ayarlar
+  localCache: {
+    sizeBytes: CACHE_SIZE_UNLIMITED, // Bellek boyutunu sınırsız olarak ayarlar
+  },
 });
 
-// Çevrimdışı desteği etkinleştir
-enableIndexedDbPersistence(db).catch((error) => {
-  console.warn("IndexedDB Persistence özelliği etkinleştirilemedi:", error);
-});
-
+// Firebase Storage başlat
 const storage = getStorage(app);
 
 export { auth, database, db, storage };

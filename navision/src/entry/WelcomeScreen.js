@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from 'rea
 
 const WelcomeScreen = ({ navigation }) => {
   return (
-    <View contentContainerStyle={styles.container}>
+    <View style={styles.container}>
       <View style={styles.imageContainer}>
         <View style={styles.imageRow}>
           <Image source={require('../assets/images/welcomepage/image1.png')} style={styles.image1} />
@@ -33,17 +33,14 @@ const WelcomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
   },
   imageContainer: {
     width: 400,
     height: 450,
     marginBottom: 60,
     marginRight: 0,
-    backgroundColor: 'transparent',
+    backgroundColor: '#fff',
     borderBottomLeftRadius: 60,
     borderBottomRightRadius: 60,
     marginTop: -30,

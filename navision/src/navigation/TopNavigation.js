@@ -9,7 +9,7 @@ import MessageIcon from '../assets/icons/MessageIcon';
 import MoreIcon from '../assets/icons/MoreIcon';
 //firebase
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 //components
 import SideMenu from '../components/SideMenu';
 
@@ -18,6 +18,7 @@ const TopNavigation = ({ onMenuPress, user }) => {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [hasNewMessage, setHasNewMessage] = useState(false); // Yeni mesaj durumu
 
   const loadFonts = async () => {
     await Font.loadAsync({
@@ -56,6 +57,20 @@ const TopNavigation = ({ onMenuPress, user }) => {
     setMenuVisible((prevMenuVisible) => !prevMenuVisible);
   };
 
+  const checkForNewMessages = async (userId) => {
+    const db = getFirestore();
+    const messagesRef = collection(db, 'messages');
+    const q = query(messagesRef, where('receiverId', '==', userId), where('isRead', '==', false));
+
+    onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        setHasNewMessage(true); // Yeni mesaj varsa mavi göstergeyi etkinleştir
+      } else {
+        setHasNewMessage(false); // Yeni mesaj yoksa mavi göstergeyi gizle
+      }
+    });
+  };
+
   useEffect(() => {
     loadFonts().then(() => setFontsLoaded(true));
 
@@ -63,6 +78,7 @@ const TopNavigation = ({ onMenuPress, user }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         fetchCurrentUser(user);
+        checkForNewMessages(user.uid); // Yeni mesajları kontrol et
       } else {
         setCurrentUser(null);
       }
@@ -83,15 +99,15 @@ const TopNavigation = ({ onMenuPress, user }) => {
           <NotificationIcon size={25} color="black" />
         </TouchableOpacity>
         <TouchableOpacity 
-          style={{ marginRight: 16 }} 
+          style={{ marginRight: 16, position: 'relative' }} 
           onPress={() => navigation.navigate('MessageScreen')}
         >
           <MessageIcon size={25} color="black" />
+          {hasNewMessage && (
+            <View style={styles.newMessageIndicator} /> // Mavi gösterge
+          )}
         </TouchableOpacity>
-        {/* Profil Fotoğrafı Tıklama */}
-        <TouchableOpacity 
-          onPress={() => navigation.navigate('Profile')}
-        >
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
           <Image 
             source={{ uri: user?.profileImage || 'https://via.placeholder.com/150' }}
             style={{ width: 40, height: 40, borderRadius: 20 }}
@@ -101,6 +117,18 @@ const TopNavigation = ({ onMenuPress, user }) => {
       {menuVisible && <SideMenu onClose={toggleMenu} />}
     </View>
   );
+};
+
+const styles = {
+  newMessageIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'blue',
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
 };
 
 export default TopNavigation;

@@ -23,11 +23,11 @@ const MapComponent = () => {
   return (
     <MapView
       style={styles.map}
-      initialRegion={{
+      region={{
         latitude: location ? location.latitude : 37.78825,
         longitude: location ? location.longitude : -122.4324,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
+        latitudeDelta: 0.01, // Daha dar bir alan gösterimi için
+        longitudeDelta: 0.01,
       }}
     >
       {location && (

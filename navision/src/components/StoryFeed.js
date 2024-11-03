@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, TouchableOpacity, Image, StyleSheet, Alert, FlatList } from 'react-native';
+import { View, TouchableOpacity, Image, StyleSheet, Alert, ScrollView } from 'react-native';
 import AddIcon from '../assets/icons/AddIcon';
 import { useNavigation } from '@react-navigation/native';
 import { collection, onSnapshot, query, orderBy, doc, setDoc, getDoc } from 'firebase/firestore';
@@ -7,12 +7,11 @@ import { db, auth } from '../firebase';
 
 const StoryFeed = ({ handleStoryPress }) => {
   const [groupedStories, setGroupedStories] = useState([]);
-  const [seenStories, setSeenStories] = useState([]); // Görülen story ID'leri
+  const [seenStories, setSeenStories] = useState([]);
   const navigation = useNavigation();
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    // Kullanıcının gördüğü story'leri Firebase'den al
     const fetchSeenStories = async () => {
       if (currentUser) {
         const userDocRef = doc(db, 'userInfo', currentUser.uid);
@@ -26,7 +25,6 @@ const StoryFeed = ({ handleStoryPress }) => {
     fetchSeenStories();
 
     const storiesQuery = query(collection(db, 'stories'), orderBy('timestamp', 'desc'));
-
     const unsubscribe = onSnapshot(storiesQuery, (snapshot) => {
       const latestStories = {};
       const currentTime = new Date().getTime();
@@ -34,8 +32,6 @@ const StoryFeed = ({ handleStoryPress }) => {
 
       snapshot.forEach((doc) => {
         const data = doc.data();
-
-        // Sadece 24 saat içinde atılan story'leri al
         if (data.timestamp && currentTime - data.timestamp.toMillis() < twentyFourHoursInMillis) {
           if (!latestStories[data.userId]) {
             latestStories[data.userId] = {
@@ -61,56 +57,49 @@ const StoryFeed = ({ handleStoryPress }) => {
   };
 
   const handleStoryPressWrapper = async (userId, storyId) => {
-    // Story izleme işlevini sararak story'nin görüldüğünü kaydet
     if (!seenStories.includes(storyId) && currentUser) {
       const updatedSeenStories = [...seenStories, storyId];
       setSeenStories(updatedSeenStories);
 
-      // Firestore'da kullanıcının görülen story'lerini güncelle
       const userDocRef = doc(db, 'userInfo', currentUser.uid);
       await setDoc(userDocRef, { seenStories: updatedSeenStories }, { merge: true });
     }
     handleStoryPress(userId);
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      key={item.userId}
-      onPress={() => handleStoryPressWrapper(item.userId, item.id)}
-    >
-      <View style={styles.storyWrapper}>
-        <Image
-          source={{
-            uri: item.profileImage || 'https://via.placeholder.com/150',
-          }}
-          style={[
-            styles.storyImage,
-            !seenStories.includes(item.id) && styles.newStoryBorder, // Görülmemiş story'ye özel stil
-          ]}
-          resizeMode="cover"
-          onError={() => handleImageError(item.userId)}
-        />
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
-    <FlatList
-      data={groupedStories}
-      renderItem={renderItem}
-      keyExtractor={(item) => item.userId}
+    <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      ListHeaderComponent={
-        <TouchableOpacity
-          style={styles.storyItem}
-          onPress={() => navigation.navigate('StoryUpload')}
-        >
-          <AddIcon />
-        </TouchableOpacity>
-      }
       contentContainerStyle={styles.storiesContainer}
-    />
+    >
+      <TouchableOpacity
+        style={styles.storyItem}
+        onPress={() => navigation.navigate('StoryUpload')}
+      >
+        <AddIcon />
+      </TouchableOpacity>
+      {groupedStories.map((item) => (
+        <TouchableOpacity
+          key={item.userId}
+          onPress={() => handleStoryPressWrapper(item.userId, item.id)}
+        >
+          <View style={styles.storyWrapper}>
+            <Image
+              source={{
+                uri: item.profileImage || 'https://via.placeholder.com/150',
+              }}
+              style={[
+                styles.storyImage,
+                !seenStories.includes(item.id) && styles.newStoryBorder,
+              ]}
+              resizeMode="cover"
+              onError={() => handleImageError(item.userId)}
+            />
+          </View>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
   );
 };
 
@@ -133,7 +122,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#eaeaea',
   },
   newStoryBorder: {
-    borderColor: '#007BFF', // Yeni story için turuncu kenarlık
+    borderColor: '#007BFF',
     borderWidth: 4,
   },
 });
