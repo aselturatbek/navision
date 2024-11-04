@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
 import PostUpload from '../mediaupload/PostUpload';
-import DefaultScreen from '../screens/DefaultScreen';
+import LoopScreen from '../screens/LoopScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import Default2 from '../screens/Default2';
 import MessageScreen from '../screens/MessageScreen';
@@ -13,7 +13,7 @@ import UserPosts from '../screens/profilescreen/UserPosts';
 import HomeIcon from '../assets/icons/HomeIcon';
 import SearchIcon from '../assets/icons/SearchIcon';
 import PlusIcon from '../assets/icons/PlusIcon';
-import GridIcon from '../assets/icons/GridIcon';
+import LoopIcon from '../assets/icons/LoopIcon';
 import BagIcon from '../assets/icons/BagIcon';
 
 const Tab = createBottomTabNavigator();
@@ -55,11 +55,11 @@ const BottomNavigation = ({ username, profileImage, name, surname }) => {
           }}
         />
       <Tab.Screen 
-        name="Default" 
-        component={DefaultScreen} 
+        name="Loop" 
+        component={LoopScreen} 
         options={{ 
           tabBarLabel: () => null,
-          tabBarIcon: ({ color, focused }) => <GridIcon size={25} color={focused ? "black" : color} />
+          tabBarIcon: ({ color, focused }) => <LoopIcon size={25} color={focused ? "black" : color} />
         }} 
       />
       <Tab.Screen 

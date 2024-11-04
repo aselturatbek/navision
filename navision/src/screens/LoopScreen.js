@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text,StyleSheet } from 'react-native';
 //firebase
 import { getFirestore, doc, onSnapshot, collection } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
@@ -66,12 +66,24 @@ const DefaultScreen = () => {
   }, []);
 
   return (
-    <View>
+    <View style={styles.container}>
       <TopNavigation onMenuPress={toggleMenu} user={currentUser} />
-      <Text>Default Page</Text>
-     {menuVisible && <SideMenu onClose={toggleMenu} />}
+      <Text style={styles.title}>Work in progress :)</Text>
+     
     </View>
   );
 };
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor:'#fff',
+    justifyContent:'center',
+  },
+  title: {
+    fontFamily:'ms-bold',
+    fontSize:24,
+    color:'#333',
+    textAlign:'center',
+  },
+});
 
 export default DefaultScreen;

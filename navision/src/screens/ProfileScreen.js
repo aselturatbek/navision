@@ -157,7 +157,13 @@ const ProfileScreen = () => {
 
   const renderGridItem = ({ item }) => (
     <TouchableOpacity
-      onPress={() => navigation.navigate('UserPosts', { selectedPostId: item.id, userId: currentUser.uid })}
+      onPress={() => {
+        navigation.navigate('UserPosts', { selectedPostId: item.id, userId: currentUser.uid });
+      }}
+      onLongPress={() => {
+        setSelectedPost(item); // Seçilen postu ayarla
+        setPopupVisible(true); // Pop-up görünürlüğünü ayarla
+      }}
       style={styles.gridItem}
     >
       <Image
@@ -171,6 +177,7 @@ const ProfileScreen = () => {
       )}
     </TouchableOpacity>
   );
+  
   
 
   if (!userInfo) {
