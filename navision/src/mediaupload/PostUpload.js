@@ -280,7 +280,7 @@ const pickVideo = async () => {
          <TouchableOpacity style={styles.imageText}  >
             <Text style={styles.fotograf}>Fotoğraf</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.videoText}  >
+          <TouchableOpacity style={styles.videoText}  onPress={() => navigation.navigate('LoopUpload')}  >
             <Text style={styles.fotograf}>Video</Text>
           </TouchableOpacity>
         </View>
