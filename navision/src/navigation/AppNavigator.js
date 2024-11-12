@@ -14,6 +14,7 @@ import EditProfile from '../components/EditProfile';
 import StoryUpload from '../mediaupload/StoryUpload';
 import ChatScreen from '../screens/messagescreen/ChatScreen';
 import UserPosts from '../screens/profilescreen/UserPosts';
+import LoopUpload from '../mediaupload/LoopUpload';
 //firebase
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
@@ -112,7 +113,7 @@ const AppNavigator = () => {
           <Stack.Screen name="StoryUpload" component={StoryUpload} options={{ headerShown: false }} />
           <Stack.Screen name="ChatScreen" component={ChatScreen} options={{ headerShown: false }} />
           <Stack.Screen name="UserPosts" component={UserPosts} options={{ headerShown: false,gestureEnabled: true }} />
-
+          <Stack.Screen name="LoopUpload" component={LoopUpload} options={{ headerShown: false,gestureEnabled: false }} />
         </Stack.Navigator>
       </View>
     </NavigationContainer>
