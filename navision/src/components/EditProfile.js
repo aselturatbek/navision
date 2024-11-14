@@ -56,6 +56,22 @@ const EditProfile = ({ route }) => {
 
     await batch.commit();
   };
+  //updateLoops
+  const updateLoops = async (userId, username, profileImage) => {
+    const postsRef = collection(firestore, 'loops');
+    const querySnapshot = await getDocs(query(postsRef, where("userId", "==", userId)));
+
+    const batch = writeBatch(firestore);
+    
+    querySnapshot.forEach((doc) => {
+      batch.update(doc.ref, {
+        username: username,
+        profileImage: profileImage
+      });
+    });
+
+    await batch.commit();
+  };
 
   // updatePosts fonksiyonunu burada tanımla
   const updateStories = async (userId, username, profileImage) => {
@@ -88,10 +104,11 @@ const EditProfile = ({ route }) => {
   
       await setDoc(doc(firestore, 'userInfo', userId), userInfo);
   
-      // Posts koleksiyonundaki gönderileri güncelle
+
       await updatePosts(userId, userInfo.username, userInfo.profileImage);
       await updateStories(userId, userInfo.username, userInfo.profileImage);
-  
+      await updateLoops(userId, userInfo.username, userInfo.profileImage);
+
       Alert.alert("Başarılı", "Profil başarıyla güncellendi.", [
         { text: "Tamam", onPress: () => {
             onUpdate(userInfo);
