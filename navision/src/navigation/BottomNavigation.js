@@ -58,9 +58,9 @@ const BottomNavigation = ({ username, profileImage, name, surname }) => {
         name="Loop" 
         component={LoopScreen} 
         options={{ 
-          tabBarStyle: { backgroundColor: '#333', borderTopWidth: 0, elevation: 0, padding: 10, paddingHorizontal: 20 },
+          tabBarStyle: { backgroundColor: 'white', borderTopWidth: 0, elevation: 0, padding: 10, paddingHorizontal: 20 },
           tabBarActiveTintColor: 'black',
-          tabBarInactiveTintColor: 'gray',
+          tabBarInactiveTintColor: 'grey',
           tabBarLabel: () => null,
           tabBarIcon: ({ color, focused }) => <LoopIcon size={25} color={focused ? "black" : color} />
         }} 
