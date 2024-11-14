@@ -1,52 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Alert, Image, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  FlatList,
+  Alert,
+} from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import * as ImagePicker from 'expo-image-picker';
+import { Video } from 'expo-av';
+import * as Location from 'expo-location';
+//firebase
 import { getFirestore, collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
-import MapView, { Marker } from 'react-native-maps';
-import * as Location from 'expo-location';
-import { Video } from 'expo-av';
-import * as ImageManipulator from 'expo-image-manipulator';
-//icons
+
+// Icons
 import CancelIcon from '../assets/icons/postuploadicons/CancelIcon';
 import AcceptIcon from '../assets/icons/postuploadicons/AcceptIcon';
 import CameraIcon from '../assets/icons/postuploadicons/CameraIcon';
 import CaptureIcon from '../assets/icons/postuploadicons/CaptureIcon';
 import TurnIcon from '../assets/icons/postuploadicons/TurnIcon';
 
-
-// Fotoğrafı seçilen oran ile kırpma ve yeniden boyutlandırma
-const resizeAndCropImage = async (uri, aspectRatio) => {
-  const manipulatedImage = await ImageManipulator.manipulateAsync(
-    uri,
-    [
-      { resize: { width: aspectRatio === '4:5' ? 800 : 800, height: aspectRatio === '4:5' ? 1000 : 800 } },
-      { crop: { originX: 0, originY: 0, width: aspectRatio === '4:5' ? 800 : 800, height: aspectRatio === '4:5' ? 1000 : 800 } }
-    ],
-    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-  );
-  return manipulatedImage.uri;
-};
-
-
-
-
 const LoopUpload = ({ navigation }) => {
-  const [step, setStep] = useState(1); // Adım durumu
-  const [mediaUrls, setMediaUrls] = useState([]);
-  const [description, setDescription] = useState('');
+  const [step, setStep] = useState(1);
+  const [loopUrl, setLoopUrl] = useState([]); // Başlangıçta bir dizi
   const [location, setLocation] = useState(null);
+  const [loopDescription, setLoopDescription] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
   const [userInfo, setUserInfo] = useState({});
   const [region, setRegion] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [mediaData, setMediaData] = useState([]);
   const videoRef = useRef(null);
   const auth = getAuth();
   const firestore = getFirestore();
   const storage = getStorage();
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState('1:1');
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -54,7 +47,7 @@ const LoopUpload = ({ navigation }) => {
         const userId = auth.currentUser.uid;
         const userDocRef = doc(firestore, 'userInfo', userId);
         const userDoc = await getDoc(userDocRef);
-
+  
         if (userDoc.exists()) {
           setUserInfo(userDoc.data());
         }
@@ -62,9 +55,9 @@ const LoopUpload = ({ navigation }) => {
         console.error('Error fetching user data:', error);
       }
     };
-
+  
     fetchUserInfo();
-
+  
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -76,77 +69,72 @@ const LoopUpload = ({ navigation }) => {
       setRegion({
         latitude: coords.latitude,
         longitude: coords.longitude,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
       });
+  
+      // Varsayılan ülke ve şehir ayarı
+      try {
+        const address = await Location.reverseGeocodeAsync({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
+        if (address.length > 0) {
+          setCity(address[0].city || '');
+          setCountry(address[0].country || '');
+        }
+      } catch (error) {
+        console.error('Error reverse geocoding default location:', error);
+      }
     })();
   }, [auth, firestore]);
+  
+  const pickVideo = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 1,
+      });
 
+      if (!result.canceled) {
+        const videoUri = result.assets[0]?.uri;
+        if (videoUri) {
+          setLoopUrl((prev) => [...prev, videoUri]); // Diziye ekleme
+          setMediaData((prevData) => [
+            ...prevData,
+            { id: Date.now().toString(), uri: videoUri, type: 'video' },
+          ]);
+        } else {
+          Alert.alert('Error', 'Video URI not found.');
+        }
+      } else {
+        Alert.alert('Cancelled', 'Video selection was cancelled.');
+      }
+    } catch (error) {
+      console.error('Error picking video:', error);
+      Alert.alert('Error', 'An error occurred while selecting the video.');
+    }
+  };
   const resetForm = () => {
-    setMediaUrls([]);
-    setDescription('');
+    setLoopUrl([]);
+    setLoopDescription('');
     setLocation(null);
     setCity('');
     setCountry('');
   };
-
-  
-// Çoklu ortam seçimi (hem fotoğraf hem video için)
-// const pickMedia = async () => {
-//   const result = await ImagePicker.launchImageLibraryAsync({
-//     mediaTypes: ImagePicker.MediaTypeOptions.All,
-//     allowsMultipleSelection: true,
-//   });
-
-//   if (!result.canceled && result.assets) {
-//     const newMedia = await Promise.all(
-//       result.assets.map(async (asset) => ({
-//         uri: asset.type === 'image' ? await resizeAndCropImage(asset.uri, selectedAspectRatio) : asset.uri,
-//         type: asset.type,
-//       }))
-//     );
-//     setMediaUrls([...mediaUrls, ...newMedia]);
-//   }
-// };
-const pickPhoto = async () => {
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-  });
-
-  if (!result.canceled && result.assets && result.assets.length > 0) {
-    const croppedImageUri = await resizeAndCropImage(result.assets[0].uri, selectedAspectRatio);
-    setMediaUrls([...mediaUrls, { uri: croppedImageUri, type: 'image' }]);
-  }
-};
-// Video seçme işlemi
-const pickVideo = async () => {
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-  });
-
-  if (!result.canceled) {
-    setMediaUrls([...mediaUrls, { uri: result.uri, type: 'video' }]);
-  }
-};
-
-
-  const removeMedia = (index) => {
-    const updatedMedia = mediaUrls.filter((_, i) => i !== index);
-    setMediaUrls(updatedMedia);
-  };
-
   const uploadMedia = async (uri, index, username) => {
     const response = await fetch(uri);
     const blob = await response.blob();
-    
+
     const extension = uri.split('.').pop();
-    const uniqueFileName = `posts/${username}_${Date.now()}_${index}.${extension}`;
+    const uniqueFileName = `loops/${username}_${Date.now()}_${index}.${extension}`;
     const mediaRef = storageRef(storage, uniqueFileName);
-    
+
     await uploadBytes(mediaRef, blob);
     const downloadUrl = await getDownloadURL(mediaRef);
-    
+
     return { uri: downloadUrl, fileName: uniqueFileName };
   };
 
@@ -158,14 +146,36 @@ const pickVideo = async () => {
     }
   };
 
-  const handleLocationSelect = (e) => {
-    const { latitude, longitude } = e.nativeEvent.coordinate;
-    setLocation({ latitude, longitude });
-    reverseGeocode(latitude, longitude);
+  const handleLocationSelect = async (e) => {
+    try {
+      const { latitude, longitude } = e.nativeEvent.coordinate;
+  
+      if (!latitude || !longitude) {
+        throw new Error('Latitude or Longitude is missing.');
+      }
+  
+      setLocation({ latitude, longitude });
+  
+      const address = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+  
+      if (address.length > 0) {
+        setCity(address[0].city || 'Unknown City');
+        setCountry(address[0].country || 'Unknown Country');
+      } else {
+        throw new Error('No address found for the selected location.');
+      }
+    } catch (error) {
+      console.error('Error reverse geocoding selected location:', error.message);
+      Alert.alert('Error', error.message || 'Failed to get location details.');
+    }
   };
-
-  const handleUploadPost = async () => {
-    if (mediaUrls.length === 0 || !location) {
+  
+  
+  const handlePostLoop = async () => {
+    if (loopUrl.length === 0 || !location) {
       Alert.alert('Error', 'Please select media and location.');
       return;
     }
@@ -174,148 +184,134 @@ const pickVideo = async () => {
 
     try {
       const uploadedMediaUrls = await Promise.all(
-        mediaUrls.map(async (media, index) => {
-          const { uri: downloadUrl, fileName } = await uploadMedia(media.uri, index, userInfo.username || 'username');
-          return { uri: downloadUrl, fileName, type: media.type };
+        loopUrl.map(async (uri, index) => {
+          const { uri: downloadUrl, fileName } = await uploadMedia(uri, index, userInfo.username || 'username');
+          return { uri: downloadUrl, fileName, type: 'video' };
         })
       );
 
       const currentUser = auth.currentUser;
 
-      const postData = {
+      const loopData = {
         userId: currentUser.uid,
         username: userInfo.username || 'username',
         profileImage: userInfo.profileImage || 'https://via.placeholder.com/150',
-        mediaUrls: uploadedMediaUrls.map(media => media.uri),
-        mediaFileNames: uploadedMediaUrls.map(media => media.fileName),
-        description,
+        loopUrl: uploadedMediaUrls.map((media) => media.uri),
+        description: loopDescription,
         location: {
           city,
           country,
           latitude: location.latitude,
           longitude: location.longitude,
         },
-        mediaType: uploadedMediaUrls.length > 1 ? 'carousel' : uploadedMediaUrls[0].type,
         timestamp: serverTimestamp(),
         likes: 0,
         commentsCount: 0,
         comments: 0,
         shares: 0,
         saves: 0,
+        sents:0,
+        sentBy:[],
         likedBy: [],
         commentedBy: [],
         savedBy: [],
       };
 
-      await addDoc(collection(firestore, 'posts'), postData);
+      await addDoc(collection(firestore, 'loops'), loopData);
 
-      Alert.alert('Success', 'Post uploaded!');
+      Alert.alert('Success', 'Loop uploaded!');
       resetForm();
       navigation.navigate('Home', { location });
     } catch (error) {
-      console.error('Error uploading post:', error);
-      Alert.alert('Error', 'Failed to upload post. Please try again.');
+      console.error('Error uploading loop:', error);
+      Alert.alert('Error', 'Failed to upload loop. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const renderMediaPreview = ({ item: media, index }) => {
-    if (!media) return null;
-    if (media.type === 'video') {
-      return (
-        <View key={index} style={styles.mediaWrapper}>
-          <Video
-            source={{ uri: media.uri }}
-            style={styles.media}
-            resizeMode="contain"
-            useNativeControls
-            ref={videoRef}
-            onPlaybackStatusUpdate={(status) => {
-              if (!status.isPlaying && status.didJustFinish) {
-                videoRef.current?.stopAsync();
-              }
-            }}
-          />
-          <TouchableOpacity style={styles.removeButton} onPress={() => removeMedia(index)}>
-            <Text style={styles.removeButtonText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
+  const renderMediaPreview = ({ item: media }) => {
     return (
-      <View key={index} style={styles.mediaWrapper}>
-        <Image source={{ uri: media.uri }} style={styles.media} />
-        <TouchableOpacity style={styles.removeButton} onPress={() => removeMedia(index)}>
-          <Text style={styles.removeButtonText}>✕</Text>
-        </TouchableOpacity>
+      <View style={styles.mediaWrapper}>
+        <Video
+          source={{ uri: media.uri }}
+          style={styles.media}
+          resizeMode="contain"
+          useNativeControls
+        />
       </View>
     );
   };
-
 
   return (
     <View style={styles.container}>
       {step === 1 ? (
         <View style={styles.firstStepContainer1}>
-        <View style={styles.headerContainer1}>
-          <TouchableOpacity onPress={() => navigation.navigate('Loop')}>
-            <CancelIcon style={styles.cancelIcon}/>
-          </TouchableOpacity>
-          <Text style={styles.headerText1}>Paylaşım Yap</Text>
-          <TouchableOpacity onPress={() => setStep(1.5)}>
-            <AcceptIcon/>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={mediaUrls}
-          renderItem={renderMediaPreview}
-          keyExtractor={(item, index) => index.toString()}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          style={styles.mediaContainer1}
-        />
-         <View style={styles.optionContainer}>
-         <TouchableOpacity style={styles.imageText} onPress={() => navigation.navigate('PostUpload')}  >
-            <Text style={styles.fotograf}>Fotoğraf</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.videoText}  >
-            <Text style={styles.fotograf}>Video</Text>
-          </TouchableOpacity>
-        </View>
-       <View style={styles.iconContainer}>
-          <TouchableOpacity onPress={pickPhoto} style={styles.cameraIcon} >
+          <View style={styles.headerContainer1}>
+            <TouchableOpacity onPress={() => navigation.navigate('Loop')}>
+              <CancelIcon style={styles.cancelIcon} />
+            </TouchableOpacity>
+            <Text style={styles.headerText1}>Paylaşım Yap</Text>
+            <TouchableOpacity onPress={() => setStep(1.5)}>
+              <AcceptIcon />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={mediaData}
+            renderItem={renderMediaPreview}
+            keyExtractor={(item) => item.id}
+           
+            style={styles.mediaContainer1}
+          />
+          <View style={styles.optionContainer}>
+            <TouchableOpacity
+              style={styles.imageText}
+              onPress={() => navigation.navigate('PostUpload')}
+            >
+              <Text style={styles.fotograf}>Post</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.videoText} onPress={pickVideo}>
+              <Text style={styles.fotograf}>Loop</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.iconContainer}>
+          <TouchableOpacity onPress={pickVideo} style={styles.cameraIcon} >
             <CameraIcon />
           </TouchableOpacity>
-          <TouchableOpacity onPress={pickPhoto} style={styles.captureIcon}>
+          <TouchableOpacity onPress={pickVideo} style={styles.captureIcon}>
             <CaptureIcon />
           </TouchableOpacity>
           <TouchableOpacity style={styles.turnIcon}  >
             <TurnIcon />
           </TouchableOpacity>
         </View>
-      </View>
+        </View>
       ) : (
         <View style={styles.secondStepContainer}>
           <TouchableOpacity onPress={() => setStep(1)}>
             <Text style={styles.backButtonText}>Geri</Text>
           </TouchableOpacity>
-          <MapView style={styles.map} region={region} onPress={handleLocationSelect}>
+          <MapView
+            style={styles.map}
+            region={region}
+            onPress={handleLocationSelect}
+          >
             {location && (
-              <Marker coordinate={location} pinColor="red" title={`${city}, ${country}`} />
+              <Marker
+                coordinate={location}
+                pinColor="red"
+                title={`${city}, ${country}`}
+              />
             )}
           </MapView>
+
           <TextInput
             style={styles.input}
             placeholder="Açıklama ekle..."
-            value={description}
-            onChangeText={setDescription}
+            value={loopDescription}
+            onChangeText={setLoopDescription}
           />
-          <View style={styles.mediaContainer}>
-            {mediaUrls.map((media, index) => renderMediaPreview(media, index))}
-          </View>
-          <TouchableOpacity style={styles.uploadButton} onPress={handleUploadPost}>
+          <TouchableOpacity style={styles.uploadButton} onPress={handlePostLoop}>
             {loading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
@@ -327,138 +323,21 @@ const pickVideo = async () => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'black',
-    marginTop:0
-  },
-  firstStepContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  secondStepContainer: {
-    flex: 1,
-    padding: 20,
-    backgroundColor:'white'
-  },
-  headerText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center',
-   
-  },
-  captureButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  mediaContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    height:400,
-    width:400 
-  },
   mediaWrapper: {
-    height:400,
-    width:400,
+    height: '100%', // Kapsayıcı yüksekliği tam ekran
+    width: '100%',  // Kapsayıcı genişliği tam ekran
     borderRadius: 10,
     overflow: 'hidden',
     marginRight: 15,
+    position: 'relative', // İçerik için konumlandırma
   },
   media: {
-    height:400,
-    width:400 
+    ...StyleSheet.absoluteFillObject, // Kapsayıcı alanı tamamen doldurur
   },
-  iconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: '#000',
-  },
-  cameraIcon: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom:80
-  },
-  turnIcon:{
-    marginBottom:70,
-    marginRight:10
-
-  },
-  captureIcon: {
-    width: 70, // Büyük ikon boyutu
-    height: 70,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom:70
-  },
-  optionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 85,
-    paddingVertical: 60,
-    backgroundColor: '#000',
-  },
-  imageText:{
-    backgroundColor:'transparent',
-    width:100,
-    height:30,
-    borderRadius:15,
-    alignItems:'center',
-    justifyContent:'center'
-  },
-  videoText:{
-     backgroundColor:'rgba(26, 34, 42, 1)',
-     width:100,
-     height:30,
-     borderRadius:15,
-     alignItems:'center',
-     justifyContent:'center'
-  },
-  fotograf:{
-    color:'white',
-    fontFamily:'ms-light'
-         
-  },
-  backButtonText: {
-    color: '#000',
-    fontSize: 16,
-    textAlign:'left',
-    marginTop:50
-  },
-  confirmButtonText: {
-    color: '#4CAF50',
-    fontSize: 16,
-    fontWeight: 'bold',
-    
-  },
-  uploadButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    padding: 15,
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontFamily: 'ms-bold',
-  },
-  map: {
-    height: 200,
-    borderRadius: 10,
-    marginVertical: 10,
+  container: {
+    flex: 1,
+    backgroundColor: 'black',
   },
   firstStepContainer1: {
     flex: 1,
@@ -472,11 +351,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 10,
   },
-  backButtonText1: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-    fontFamily: 'ms-regular',
+  cancelIcon: {
+    marginTop: 40,
   },
   headerText1: {
     color: '#FFFFFF',
@@ -486,62 +362,100 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     flex: 1,
   },
-  cancelIcon: {
-    marginTop:40,
-  },
-  confirmButtonText1: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-    fontFamily: 'ms-regular',
-  },
   mediaContainer1: {
-    flex: 1,
-    marginVertical: 10,
-  },
-  mediaWrapper: {
-    height:350,
-    width:350,
+    height: '100%', // Kapsayıcı yüksekliği tam ekran
+    width: '100%',  // Kapsayıcı genişliği tam ekran
     borderRadius: 10,
     overflow: 'hidden',
     marginRight: 15,
-    marginTop:90
+    position: 'relative', // İçerik için konumlandırma
+    marginTop:10,
   },
-  media: {
-    height:400,
-    width:400 
+  optionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 85,
+    paddingVertical: 60,
+    backgroundColor: '#000',
   },
-  captureButton1: {
+  imageText: {
+    backgroundColor: 'transparent',
+    width: 100,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoText: {
+    backgroundColor: 'rgba(26, 34, 42, 1)',
+    width: 100,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fotograf: {
+    color: 'white',
+    fontFamily: 'ms-light',
+  },
+  iconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#000',
+  },
+  cameraIcon: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 80,
+  },
+  turnIcon: {
+    marginBottom: 70,
+    marginRight: 10,
+  },
+  captureIcon: {
     width: 70,
     height: 70,
-    borderRadius: 35,
-    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginVertical: 20,
+    marginBottom: 70,
   },
-  buttonText1: {
-    color: '#000000',
+  secondStepContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: 'white',
+  },
+  backButtonText: {
+    color: '#000',
     fontSize: 16,
-    fontWeight: '500',
+    marginTop: 50,
   },
-  removeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
+  map: {
+    height: 200,
+    borderRadius: 10,
+    marginVertical: 10,
+  },
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginVertical: 10,
+  },
+  uploadButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    padding: 15,
     alignItems: 'center',
   },
-  removeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: 'ms-bold',
   },
-  });
+});
 
 export default LoopUpload;
