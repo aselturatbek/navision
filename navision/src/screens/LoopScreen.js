@@ -1,5 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Image,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  ScrollView,
+  ActivityIndicator,
+  Dimensions,
+  Animated,
+} from 'react-native';
 //icons
 import CommentLoop from '../assets/icons/loopicons/CommentLoop';
 import DropDownLoop from '../assets/icons/loopicons/DropdownLoop';
@@ -11,13 +22,114 @@ import LocationLoop from '../assets/icons/loopicons/LocationLoop';
 import MusicLoop from '../assets/icons/loopicons/MusicLoop';
 import CameraLoop from '../assets/icons/loopicons/CameraLoop';
 import LoopTitle from '../assets/icons/loopicons/LoopTitle';
+//firebase
+import { getFirestore, collection, getDocs,onSnapshot,doc,updateDoc,getDoc } from 'firebase/firestore';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+//expo
+import { Video } from 'expo-av';
 
-const LoopScreen = ({navigation}) => {
+
+const timeAgo = (timestamp) => {
+  const now = new Date();
+  const loopDate = timestamp.toDate();
+  const diffInMs = now - loopDate;
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+
+  if (diffInHours < 1) {
+    return `${Math.floor(diffInMs / (1000 * 60))}dk`;
+  } else if (diffInHours < 24) {
+    return `${diffInHours}sa`;
+  } else {
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}gün`;
+  }
+};
+
+const LoopScreen = ({navigation,user, handleCommentPress, handleSharePress}) => {
+  const [loops, setLoops] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const firestore = getFirestore();
+  const storage = getStorage();
+  const scrollX = useRef(new Animated.Value(0)).current;
+
+  const fetchLoops = () => {
+    const unsubscribe = onSnapshot(collection(firestore, 'loops'), async (querySnapshot) => {
+      const fetchedLoops = await Promise.all(
+        querySnapshot.docs.map(async (doc) => {
+          const data = doc.data();
+
+          // Profil resmini ve medya dosyalarını Firebase Storage'dan çekme
+          try {
+            if (data.profileImage) {
+              const profileImageUrl = await getDownloadURL(ref(storage, data.profileImage));
+              data.profileImage = profileImageUrl;
+            }
+
+            if (data.mediaUrls && data.mediaUrls.length > 0) {
+              const mediaUrls = await Promise.all(
+                data.mediaUrls.map(async (url) => {
+                  const mediaUrl = await getDownloadURL(ref(storage, url));
+                  return { uri: mediaUrl, type: url.type };
+                })
+              );
+              data.mediaUrls = mediaUrls;
+            }
+          } catch (error) {
+            console.error('Error fetching media:', error);
+          }
+
+          return { id: doc.id, ...data };
+        })
+      );
+
+      const sortedLoops = fetchedLoops.sort((a, b) => b.timestamp.toDate() - a.timestamp.toDate());
+      setLoopss(sortedLoops);
+      setLoading(false);  // Loading bittiğinde false olarak ayarlanır
+    });
+
+    return () => unsubscribe(); // Bileşen kaldırıldığında dinleyiciyi kaldır.
+  };
+
+  useEffect(() => {
+    fetchLoops();
+  }, []);
+  //like,comment actions
+  const handleLike = async (loopId) => {
+    const currentUser = user.username; // Kullanıcı adını al
+    const loopRef = doc(firestore, 'loops', loopId);
+  
+    const loopDoc = await getDoc(loopRef);
+    const loopData = loopDoc.data();
+    const likedBy = loopData.likedBy || [];
+  
+    const isLiked = likedBy.includes(currentUser); // Kullanıcının beğenip beğenmediğini kontrol et
+  
+    // Beğeniyi güncelle
+    let updatedLikedBy;
+    if (isLiked) {
+      updatedLikedBy = likedBy.filter(username => username !== currentUser);
+    } else {
+      updatedLikedBy = [...likedBy, currentUser];
+    }
+  
+    await updateDoc(loopRef, {
+      likedBy: updatedLikedBy,
+      likes: updatedLikedBy.length,
+    });
+  
+    // loopları güncelle
+    setLoops(prevLoops => 
+      prevLoops.map(loop => 
+        loop.id === loopId ? { ...loop, isLiked: !isLiked } : loop
+      )
+    );
+  };
   return (
     <View style={styles.container}>
+      {/*loopUrl video bu imagein yerine gelcek*/}
       <Image 
         source={{ uri: 'https://wallpapers.com/images/hd/water-drop-full-screen-hd-deskt-pvrocq06v2mwoh0y.jpg' }} 
-        style={styles.image} 
+        style={styles.video} 
       />
       {/* Üst Çubuk */}
       <View style={styles.topBar}>
@@ -56,12 +168,7 @@ const LoopScreen = ({navigation}) => {
           </TouchableOpacity>
         </TouchableOpacity>
       </View>
-      {/* İçerik Resmi */}
-      <Image 
-        source={{ uri: 'https://wallpapers.com/images/hd/water-drop-full-screen-hd-deskt-pvrocq06v2mwoh0y.jpg' }} 
-        style={styles.image} 
-      />
-
+     
       {/* Alt Kısım */}
       <View style={styles.bottomContainer}>
         <Image 
@@ -93,7 +200,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     
   },
-  image: {
+  video: {
     position: 'absolute',
     top: 0,
     bottom: -50,
