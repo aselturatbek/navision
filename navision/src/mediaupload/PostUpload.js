@@ -89,25 +89,6 @@ const PostUpload = ({ navigation }) => {
     setCity('');
     setCountry('');
   };
-
-  
-// Çoklu ortam seçimi (hem fotoğraf hem video için)
-// const pickMedia = async () => {
-//   const result = await ImagePicker.launchImageLibraryAsync({
-//     mediaTypes: ImagePicker.MediaTypeOptions.All,
-//     allowsMultipleSelection: true,
-//   });
-
-//   if (!result.canceled && result.assets) {
-//     const newMedia = await Promise.all(
-//       result.assets.map(async (asset) => ({
-//         uri: asset.type === 'image' ? await resizeAndCropImage(asset.uri, selectedAspectRatio) : asset.uri,
-//         type: asset.type,
-//       }))
-//     );
-//     setMediaUrls([...mediaUrls, ...newMedia]);
-//   }
-// };
 const pickPhoto = async () => {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -119,18 +100,6 @@ const pickPhoto = async () => {
     setMediaUrls([...mediaUrls, { uri: croppedImageUri, type: 'image' }]);
   }
 };
-// Video seçme işlemi
-const pickVideo = async () => {
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-  });
-
-  if (!result.canceled) {
-    setMediaUrls([...mediaUrls, { uri: result.uri, type: 'video' }]);
-  }
-};
-
-
   const removeMedia = (index) => {
     const updatedMedia = mediaUrls.filter((_, i) => i !== index);
     setMediaUrls(updatedMedia);
@@ -278,10 +247,10 @@ const pickVideo = async () => {
         />
          <View style={styles.optionContainer}>
          <TouchableOpacity style={styles.imageText}  >
-            <Text style={styles.fotograf}>Fotoğraf</Text>
+            <Text style={styles.fotograf}>Post</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.videoText}  onPress={() => navigation.navigate('LoopUpload')}  >
-            <Text style={styles.fotograf}>Video</Text>
+            <Text style={styles.fotograf}>Loop</Text>
           </TouchableOpacity>
         </View>
        <View style={styles.iconContainer}>
