@@ -28,6 +28,7 @@ import { getAuth } from 'firebase/auth';
 import { Video } from 'expo-av';
 //component,modals
 import LoopComment from '../modals/LoopComment';
+import ShareModal from '../modals/ShareModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -114,6 +115,12 @@ const LoopScreen = ({ navigation }) => {
   const closeCommentsModal = () => {
     setIsCommentsModalVisible(false);
   };
+  //shares
+  const [isShareModalVisible, setIsShareModalVisible] = useState(false);
+  const openShareModal = () => setIsShareModalVisible(true);
+  const closeShareModal = () => setIsShareModalVisible(false);
+
+
 
   const fetchLoops = () => {
     const loopsQuery = query(
@@ -229,7 +236,7 @@ const LoopScreen = ({ navigation }) => {
             <CommentLoop width={20} height={20} color="white" />
             <Text style={styles.iconText}>{item.commentsCount || 0}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconContainer}>
+          <TouchableOpacity style={styles.iconContainer} onPress={openShareModal}>
             <SendLoop width={20} height={20} color="white" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconContainer}>
@@ -332,6 +339,8 @@ const LoopScreen = ({ navigation }) => {
         profileImage: userProfile.profileImage,
       }}
     />
+    <ShareModal visible={isShareModalVisible} onClose={closeShareModal} />
+
 
 
 
