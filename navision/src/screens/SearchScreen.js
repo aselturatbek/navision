@@ -91,13 +91,7 @@ function SearchScreen(props) {
         <View style={styles.rectColumnRow}>
           <View style={styles.rectColumn}>
             <TouchableOpacity style={styles.post1}>
-                {randomPosts[0] ? (
-                  <ImageBackground source={{ uri: randomPosts[0] }} style={styles.image}>
-                   
-                  </ImageBackground>
-                ) : (
-                  <Text style={styles.placeholderText}></Text>
-                )}
+                
               </TouchableOpacity>
             <TouchableOpacity style={styles.post2} />
           </View>
