@@ -26,6 +26,8 @@ import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 //expo
 import { Video } from 'expo-av';
+//component,modals
+import LoopComment from '../modals/LoopComment';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -36,12 +38,44 @@ const LoopScreen = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const videoRefs = useRef([]);
   const isFocused = useIsFocused(); // Sayfanın odakta olup olmadığını kontrol etmek için
+  const [selectedLoopId, setSelectedLoopId] = useState(null);
 
+  //caption show full caption
+  const [showFullCaptions, setShowFullCaptions] = useState({});
+  const [expandedLoopId, setExpandedLoopId] = useState(null);
+  const toggleCaption = (id) => {
+    setExpandedLoopId((prev) => (prev === id ? null : id));
+  };
+  
   //current user auth
   const auth = getAuth();
   const currentUser = auth.currentUser;
-  const username = currentUser ? currentUser.displayName || currentUser.email || 'Anonim' : null;
+  const username = currentUser ? currentUser.username || currentUser.email || 'Anonim' : null;
+  const [userProfile, setUserProfile] = useState({ username: null, profileImage: null });
 
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        if (currentUser) {
+          const userRef = doc(firestore, 'userInfo', currentUser.uid);
+          const userDoc = await getDoc(userRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserProfile({
+              username: userData.username || 'Anonim', // Kullanıcı adını al
+              profileImage: userData.profileImage || 'https://via.placeholder.com/150', // Profil resmini al
+            });
+          } else {
+            console.warn('Kullanıcı Firestore içinde bulunamadı.');
+          }
+        }
+      } catch (error) {
+        console.error('Kullanıcı bilgileri alınırken hata oluştu:', error);
+      }
+    };
+  
+    fetchUserProfile();
+  }, [currentUser]);
   //likes
   const handleLike = async (loopId) => {
     try {
@@ -71,7 +105,16 @@ const LoopScreen = ({ navigation }) => {
       console.error('Like işlemi sırasında hata oluştu:', error);
     }
   };
-  
+  //comment
+  const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
+  const handleCommentPress = (loopId) => {
+    setSelectedLoopId(loopId);
+    setIsCommentsModalVisible(true);
+  };
+  const closeCommentsModal = () => {
+    setIsCommentsModalVisible(false);
+  };
+
   const fetchLoops = () => {
     const loopsQuery = query(
       collection(firestore, 'loops'),
@@ -148,8 +191,9 @@ const LoopScreen = ({ navigation }) => {
   }).current;
 
   const renderItem = ({ item, index }) => {
-    const isLiked = item.likedBy?.includes(username); // Kullanıcının beğeni durumunu kontrol et
-  
+    const isLiked = item.likedBy?.includes(username);
+    const isExpanded = expandedLoopId === item.id;
+    
     return (
       <View style={styles.container}>
         {/* Video */}
@@ -169,18 +213,21 @@ const LoopScreen = ({ navigation }) => {
         <View style={styles.interactionButtons}>
           <TouchableOpacity
             style={styles.iconContainer}
-            onPress={() => handleLike(item.id)} // Beğeni fonksiyonunu çağır
+            onPress={() => handleLike(item.id)}
           >
             <HeartLoop
               width={20}
               height={20}
-              color={isLiked ? 'red' : 'white'} // Beğeni durumuna göre renk değiştir
+              color={isLiked ? 'red' : 'white'}
             />
             <Text style={styles.iconText}>{item.likes || 0}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconContainer}>
+          <TouchableOpacity
+            style={styles.iconContainer}
+            onPress={() => handleCommentPress(item.id)} 
+          >
             <CommentLoop width={20} height={20} color="white" />
-            <Text style={styles.iconText}>0</Text>
+            <Text style={styles.iconText}>{item.commentsCount || 0}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconContainer}>
             <SendLoop width={20} height={20} color="white" />
@@ -191,15 +238,26 @@ const LoopScreen = ({ navigation }) => {
         </View>
   
         {/* Alt Kısım */}
-        <View style={styles.bottomContainer}>
+        <View style={[styles.bottomContainer, isExpanded && styles.expandedBottomContainer]}>
           <Image
             source={{ uri: item.profileImage || 'https://via.placeholder.com/150' }}
             style={styles.profileImage}
           />
           <View>
             <Text style={styles.username}>@{item.username}</Text>
-            <Text style={styles.caption}>{item.description}</Text>
-            <View style={styles.locationMusicContainer}>
+            <TouchableOpacity onPress={() => toggleCaption(item.id)}>
+          <Text
+            style={[
+              styles.caption,
+              isExpanded && styles.fullCaption, 
+            ]}
+          >
+            {isExpanded ? item.description : item.description.slice(0, 35) + '...'}
+          </Text>
+        </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles.locationMusicContainer}>
               <TouchableOpacity style={styles.iconTextBackground}>
                 <LocationLoop width={12} height={12} color="white" />
                 <Text style={styles.location}>{item.location?.country || 'Bilinmiyor'}</Text>
@@ -209,13 +267,10 @@ const LoopScreen = ({ navigation }) => {
                 <Text style={styles.author}>David G.</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
       </View>
     );
   };
   
-
   return (
     <View style={styles.screen}>
       {/* Header */}
@@ -267,6 +322,19 @@ const LoopScreen = ({ navigation }) => {
         }}
         showsVerticalScrollIndicator={false}
       />
+
+    <LoopComment
+      visible={isCommentsModalVisible}
+      onClose={closeCommentsModal}
+      loopId={selectedLoopId}
+      user={{
+        username: userProfile.username, // Firestore'dan doğru alınması gerekiyor
+        profileImage: userProfile.profileImage,
+      }}
+    />
+
+
+
     </View>
   );
 };
@@ -374,6 +442,23 @@ const styles = StyleSheet.create({
     bottom:12,
 
   },
+  //showfullCaption
+  expandedContainer: {
+    paddingVertical: 10,
+    marginRight:10,
+  },
+  expandedBottomContainer: {
+    bottom: 150,
+  },
+  fullCaption: {
+    padding: 5,
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginRight:50,
+    maxWidth: 240, // Genişlik sınırı
+    lineHeight: 18, // Satır aralığı
+    
+  },
   caption: {
     color: 'white',
     marginTop: 5,
@@ -381,14 +466,18 @@ const styles = StyleSheet.create({
     fontFamily:'ms-regular',
     position:'absolute',
     bottom:-7,
-    left:0
+    left:0,
+    maxWidth: 240, // Genişlik sınırı
+    lineHeight: 18, // Satır aralığı
   },
+  
   locationMusicContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 5,
     position:'absolute',
-    top:10,
+    top:730,
+    left:20,
   },
   iconTextBackground: {
     flexDirection: 'row',
