@@ -21,8 +21,9 @@ import MusicLoop from '../assets/icons/loopicons/MusicLoop';
 import CameraLoop from '../assets/icons/loopicons/CameraLoop';
 import LoopTitle from '../assets/icons/loopicons/LoopTitle';
 //firebase
-import { getFirestore, collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, query, orderBy,doc,getDoc,updateDoc,arrayUnion,arrayRemove } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
 //expo
 import { Video } from 'expo-av';
 
@@ -36,37 +37,55 @@ const LoopScreen = ({ navigation }) => {
   const videoRefs = useRef([]);
   const isFocused = useIsFocused(); // Sayfanın odakta olup olmadığını kontrol etmek için
 
+  //current user auth
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
+  const username = currentUser ? currentUser.displayName || currentUser.email || 'Anonim' : null;
+
+  //likes
+  const handleLike = async (loopId) => {
+    try {
+      const user = username; // Giriş yapmış kullanıcının username'i
+      const loopRef = doc(firestore, 'loops', loopId);
+      const loopDoc = await getDoc(loopRef);
+  
+      if (loopDoc.exists()) {
+        const loopData = loopDoc.data();
+        const { likedBy = [] } = loopData;
+  
+        if (likedBy.includes(user)) {
+          // Kullanıcı zaten beğendiyse, beğeniyi geri çek
+          await updateDoc(loopRef, {
+            likes: loopData.likes - 1,
+            likedBy: arrayRemove(user),
+          });
+        } else {
+          // Kullanıcı beğeni yapıyorsa
+          await updateDoc(loopRef, {
+            likes: (loopData.likes || 0) + 1,
+            likedBy: arrayUnion(user),
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Like işlemi sırasında hata oluştu:', error);
+    }
+  };
+  
   const fetchLoops = () => {
-    // Koleksiyonu sorgula ve tarihe göre sıralama uygula
     const loopsQuery = query(
       collection(firestore, 'loops'),
-      orderBy('timestamp', 'desc') // En yeni gönderiler en üstte
+      orderBy('timestamp', 'desc')
     );
   
     const unsubscribe = onSnapshot(loopsQuery, async (querySnapshot) => {
       try {
-        const fetchedLoops = await Promise.all(
-          querySnapshot.docs.map(async (doc) => {
-            const data = doc.data();
-            if (data.loopUrl && data.loopUrl.length > 0) {
-              const loopUrls = await Promise.all(
-                data.loopUrl.map(async (url) => {
-                  const loopUrl = await getDownloadURL(ref(storage, url));
-                  return { uri: loopUrl, type: 'video' };
-                })
-              );
-              data.loopUrl = loopUrls.map((urlObj) => urlObj.uri);
-            }
-            return { id: doc.id, ...data };
-          })
-        );
+        const fetchedLoops = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
   
-        // Gönderileri güncelle (sadece `timestamp` alanı mevcut olanları ekler)
-        setLoops(
-          fetchedLoops
-            .filter((loop) => loop.timestamp) // `timestamp` alanı olmayanları hariç tut
-            .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds) // Manuel sıralama
-        );
+        setLoops(fetchedLoops);
       } catch (error) {
         console.error('Veri çekme hatası:', error);
       }
@@ -74,6 +93,7 @@ const LoopScreen = ({ navigation }) => {
   
     return () => unsubscribe();
   };
+  
   
   useEffect(() => {
     fetchLoops();
@@ -108,7 +128,6 @@ const LoopScreen = ({ navigation }) => {
       }
     }
   }, [isFocused]);
-
   const handleViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) {
       const index = viewableItems[0].index;
@@ -128,63 +147,74 @@ const LoopScreen = ({ navigation }) => {
     }
   }).current;
 
-  const renderItem = ({ item,index }) => (
-    <View style={styles.container}>
-      {/* Video */}
-      {item.loopUrl?.[0] && (
-      <Video
-          source={{ uri: item.loopUrl[0] }}
-          style={styles.video}
-          resizeMode="cover"
-          isLooping
-          shouldPlay={isFocused && currentIndex === index}
-          isMuted={!isFocused || currentIndex !== index}
-          ref={(ref) => (videoRefs.current[index] = ref)}
-        />
-    
-      )}
-
-      {/* Etkileşim Düğmeleri */}
-      <View style={styles.interactionButtons}>
-        <TouchableOpacity style={styles.iconContainer}>
-          <HeartLoop width={20} height={20} color="white" />
-          <Text style={styles.iconText}>0</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconContainer}>
-          <CommentLoop width={20} height={20} color="white" />
-          <Text style={styles.iconText}>0</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconContainer}>
-          <SendLoop width={20} height={20} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconContainer}>
-          <MoreLoop width={20} height={20} color="white" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Alt Kısım */}
-      <View style={styles.bottomContainer}>
-        <Image
-          source={{ uri: item.profileImage || 'https://via.placeholder.com/150' }}
-          style={styles.profileImage}
-        />
-        <View>
-          <Text style={styles.username}>@{item.username}</Text>
-          <Text style={styles.caption}>{item.description}</Text>
-          <View style={styles.locationMusicContainer}>
-            <TouchableOpacity style={styles.iconTextBackground}>
-              <LocationLoop width={12} height={12} color="white" />
-              <Text style={styles.location}>{item.location?.country || 'Bilinmiyor'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconTextBackground}>
-              <MusicLoop width={12} height={12} color="white" />
-              <Text style={styles.author}>David G.</Text>
-            </TouchableOpacity>
+  const renderItem = ({ item, index }) => {
+    const isLiked = item.likedBy?.includes(username); // Kullanıcının beğeni durumunu kontrol et
+  
+    return (
+      <View style={styles.container}>
+        {/* Video */}
+        {item.loopUrl?.[0] && (
+          <Video
+            source={{ uri: item.loopUrl[0] }}
+            style={styles.video}
+            resizeMode="cover"
+            isLooping
+            shouldPlay={isFocused && currentIndex === index}
+            isMuted={!isFocused || currentIndex !== index}
+            ref={(ref) => (videoRefs.current[index] = ref)}
+          />
+        )}
+  
+        {/* Etkileşim Düğmeleri */}
+        <View style={styles.interactionButtons}>
+          <TouchableOpacity
+            style={styles.iconContainer}
+            onPress={() => handleLike(item.id)} // Beğeni fonksiyonunu çağır
+          >
+            <HeartLoop
+              width={20}
+              height={20}
+              color={isLiked ? 'red' : 'white'} // Beğeni durumuna göre renk değiştir
+            />
+            <Text style={styles.iconText}>{item.likes || 0}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconContainer}>
+            <CommentLoop width={20} height={20} color="white" />
+            <Text style={styles.iconText}>0</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconContainer}>
+            <SendLoop width={20} height={20} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconContainer}>
+            <MoreLoop width={20} height={20} color="white" />
+          </TouchableOpacity>
+        </View>
+  
+        {/* Alt Kısım */}
+        <View style={styles.bottomContainer}>
+          <Image
+            source={{ uri: item.profileImage || 'https://via.placeholder.com/150' }}
+            style={styles.profileImage}
+          />
+          <View>
+            <Text style={styles.username}>@{item.username}</Text>
+            <Text style={styles.caption}>{item.description}</Text>
+            <View style={styles.locationMusicContainer}>
+              <TouchableOpacity style={styles.iconTextBackground}>
+                <LocationLoop width={12} height={12} color="white" />
+                <Text style={styles.location}>{item.location?.country || 'Bilinmiyor'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconTextBackground}>
+                <MusicLoop width={12} height={12} color="white" />
+                <Text style={styles.author}>David G.</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
+  
 
   return (
     <View style={styles.screen}>
@@ -210,7 +240,7 @@ const LoopScreen = ({ navigation }) => {
       <FlatList
         data={loops}
         keyExtractor={(item) => item.id}
-        renderItem={renderItem}
+        renderItem={renderItem} // Güncellenmiş renderItem fonksiyonu burada kullanılıyor
         contentContainerStyle={styles.listContainer}
         scrollEventThrottle={8}
         pagingEnabled
@@ -237,7 +267,6 @@ const LoopScreen = ({ navigation }) => {
         }}
         showsVerticalScrollIndicator={false}
       />
-
     </View>
   );
 };
