@@ -15,6 +15,10 @@ import SearchIcon from '../assets/icons/SearchIcon';
 import PlusIcon from '../assets/icons/PlusIcon';
 import LoopIcon from '../assets/icons/LoopIcon';
 import BagIcon from '../assets/icons/BagIcon';
+//blurry
+import { BlurView } from 'expo-blur';
+import MenuBlur from './MenuBlur';
+
 
 const Tab = createBottomTabNavigator();
 
@@ -54,16 +58,30 @@ const BottomNavigation = ({ username, profileImage, name, surname }) => {
             tabBarStyle: { display: 'none' }, // Gizlemek için tabBarStyle ayarını da ekleyelim
           }}
         />
-      <Tab.Screen 
-        name="Loop" 
-        component={LoopScreen} 
-        options={{ 
-          tabBarStyle: { backgroundColor: 'white', borderTopWidth: 0, elevation: 0, padding: 10, paddingHorizontal: 20 },
-          tabBarActiveTintColor: 'black',
-          tabBarInactiveTintColor: 'grey',
+      <Tab.Screen
+        name="Loop"
+        component={LoopScreen}
+        options={{
           tabBarLabel: () => null,
-          tabBarIcon: ({ color, focused }) => <LoopIcon size={25} color={focused ? "black" : color} />
-        }} 
+          tabBarIcon: ({ color, focused }) => (
+            <LoopIcon size={25} color={focused ? 'black' : color} />
+          ),
+          tabBarStyle: {
+            backgroundColor: 'transparent',
+            },
+              tabBarBackground: () => <MenuBlur />,
+              tabBarStyle: {
+                position: 'absolute',
+                borderTopWidth: 0,
+                elevation: 0,
+                padding: 10,
+                paddingHorizontal: 20, 
+              },
+              tabBarItemStyle: {
+                
+                
+              },
+        }}
       />
       <Tab.Screen 
         name="Default2" 
