@@ -30,6 +30,7 @@ import { Video } from 'expo-av';
 import LoopComment from '../modals/LoopComment';
 import ShareModal from '../modals/ShareModal';
 
+
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const LoopScreen = ({ navigation }) => {
