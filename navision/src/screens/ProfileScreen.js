@@ -11,6 +11,13 @@ import ReservationIcon from '../assets/icons/profileicons/ReservationIcon';
 import CarouselIcon from '../assets/icons/profileicons/CarouselIcon';
 import NavisionIcon from '../assets/icons/profileicons/NavisionIcon';
 import AddIcon from '../assets/icons/AddIcon';
+import Icon from "react-native-vector-icons/Entypo";
+//options icons
+import Grid from '../assets/icons/profileicons/Grid';
+import Loop from '../assets/icons/profileicons/Loop';
+import WorldLocation from '../assets/icons/profileicons/WorldLocation';
+import MentionIcon from '../assets/icons/profileicons/MentionIcon';
+import EntypoIcon from "react-native-vector-icons/Entypo";
 //components
 import TopNavigation from '../navigation/TopNavigation';
 //expo
@@ -245,6 +252,27 @@ const ProfileScreen = () => {
           <TouchableOpacity style={styles.storyCircle}>
           </TouchableOpacity>
         </View>
+        {/* options Menu */}
+        <View style={styles.optionsContainer}>
+        <View style={styles.options}>
+          <View style={styles.iconRow}>
+            <TouchableOpacity style={styles.optionIcon}>
+              <Grid />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionIcon1}>
+              <Loop/>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionIcon2}>
+              <WorldLocation/>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionIcon3}>
+              <MentionIcon/>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    
+
       {/* Popup Modal */}
       <Modal
         transparent={true}
@@ -281,13 +309,16 @@ const ProfileScreen = () => {
       </View>
 
       {/* Grid Layout for posts */}
-      <FlatList
-        data={userInfo?.posts || []} // currentUser'a ait postlar
-        renderItem={renderGridItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.grid}
-      />
+     {/* Grid Layout for posts */}
+    <FlatList
+      data={userInfo?.posts || []} // currentUser'a ait postlar
+      renderItem={renderGridItem}
+      keyExtractor={(item) => item.id}
+      numColumns={2}
+      columnWrapperStyle={styles.grid}
+      style={styles.gridList} // Yeni stil ekleniyor
+    />
+
     </View>
   );
 };
@@ -527,19 +558,77 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'ms-bold',
   },
+  //options menu
+  optionsContainer: {
+    flex: 1,
+    marginTop:-50,
+    marginLeft:-200
+  },
+  options: {
+    width: 347,
+    height: 65,
+    flexDirection: "row",
+    marginTop: 272,
+    alignSelf: "center"
+  },
+  optionIcon: {
+    color: "rgba(128,128,128,1)",
+    fontSize: 20,
+    width: 20,
+    height: 22,
+    marginTop: 2
+  },
+  optionIcon1: {
+    color: "rgba(128,128,128,1)",
+    fontSize: 20,
+    width: 20,
+    height: 22,
+    marginLeft: 72,
+    marginTop:8,
+  },
+  optionIcon2: {
+    color: "rgba(128,128,128,1)",
+    fontSize: 20,
+    width: 20,
+    height: 22,
+    alignSelf: "flex-end",
+    marginLeft: 75,
+    marginTop:8,
+  },
+  optionIcon3: {
+    color: "rgba(128,128,128,1)",
+    fontSize: 20,
+    width: 20,
+    height: 22,
+    marginLeft: 73,
+    marginBottom:5,
+  },
+  iconRow: {
+    height: 26,
+    flexDirection: "row",
+    flex: 1,
+    marginRight: 28,
+    marginLeft: 19,
+    marginTop: 20
+  },
   grid: {
     justifyContent: 'space-around',
-    marginTop: 0,
-    paddingHorizontal: 15,
+    marginTop: 10,
+    paddingHorizontal: 12,
   },
   gridItem: {
     backgroundColor: '#e0e0e0',
     width: '48%',
     height: 160,
-    marginBottom: 10,
+    marginBottom: 0,
     borderRadius: 10,
     position: 'relative', // CarouselIcon pozisyonu için gerekli
   },
+  gridList: {
+    marginTop: 40, // Daha fazla boşluk için değer artırılabilir
+    paddingHorizontal:0, // Kenarlara boşluk ekler
+  },
+  
   carouselIcon: {
     position: 'absolute',
     top: 8,
