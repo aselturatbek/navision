@@ -15,15 +15,18 @@ const MenuBlur = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+   
   },
   blurWrapper: {
     width: '100%',
     height: 80,
     overflow: 'hidden',
+    zIndex: -10,
   },
   blurView: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: -10,
   },
 });
 
