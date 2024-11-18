@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity,TouchableWithoutFeedback,FlatList,Modal } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity,TouchableWithoutFeedback,FlatList,Modal,ScrollView} from 'react-native';
 //firebase
 import { auth } from '../firebase';
 import { limit, startAfter,getFirestore, doc, getDoc ,onSnapshot,collection,query,where,orderBy} from 'firebase/firestore';
@@ -9,6 +9,8 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import EditIcon from '../assets/icons/profileicons/EditIcon';
 import ReservationIcon from '../assets/icons/profileicons/ReservationIcon';
 import CarouselIcon from '../assets/icons/profileicons/CarouselIcon';
+import NavisionIcon from '../assets/icons/profileicons/NavisionIcon';
+import AddIcon from '../assets/icons/AddIcon';
 //components
 import TopNavigation from '../navigation/TopNavigation';
 //expo
@@ -187,7 +189,7 @@ const ProfileScreen = () => {
   return (
     <View style={styles.container}>
       <TopNavigation onMenuPress={toggleMenu} user={currentUser} />
-
+      {/* header */}
       <View style={styles.header}>
         <View style={styles.userInfo}>
           <Image
@@ -197,12 +199,15 @@ const ProfileScreen = () => {
           <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditProfile', { onUpdate: handleUpdate })}>
             <EditIcon/>
           </TouchableOpacity>
-          <View style={styles.userInfo}>
-          <Text style={styles.username}>{userInfo.name} {userInfo.surname}</Text>
-          <Text style={styles.handle}>@{userInfo.username}</Text>
-          <Text style={styles.biography}>{userInfo.biography}</Text>
+          <View style={styles.userInfoRow}>
+              <Text style={styles.name}>{userInfo.name}</Text>
+              <Text style={styles.name}>{userInfo.surname}</Text>
+              <NavisionIcon style={styles.icon} />
+              <Text style={styles.username}>@{userInfo.username}</Text>
+            </View>
+            <Text style={styles.biography}>{userInfo.biography}</Text>
+
           </View>
-        </View>
 
         <View style={styles.stats}>
           <View style={styles.statItem}>
@@ -218,7 +223,7 @@ const ProfileScreen = () => {
             <Text style={styles.statLabel}>Takip</Text>
           </View>
         </View>
-
+        {/* actions */}
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.followButton}>
             <Text style={styles.buttonText}>Takip Et</Text>
@@ -230,8 +235,16 @@ const ProfileScreen = () => {
             <ReservationIcon/>
           </TouchableOpacity>
         </View>
-
-
+        {/* Story Highlights */}
+        <View style={styles.storyHighlights}>
+          <TouchableOpacity style={styles.storyAdd}>
+            <AddIcon color='grey'/>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.storyCircle}>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.storyCircle}>
+          </TouchableOpacity>
+        </View>
       {/* Popup Modal */}
       <Modal
         transparent={true}
@@ -284,6 +297,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
+  //post popup
   popupContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -350,6 +364,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
   },
+  //header
   header: {
     padding: 20,
     alignItems: 'flex-start',
@@ -360,6 +375,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 15,
   },
+  userInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  icon: {
+    marginHorizontal: 10, // İkonun iki tarafına boşluk eklemek için
+    width: 20,
+    height: 20,
+  },
+  
   profileImage: {
     width: 80,
     height: 80,
@@ -370,43 +396,46 @@ const styles = StyleSheet.create({
   editButton: {
     position: 'absolute',
     top: 38,
-    right: 50,
+    right: 145,
     backgroundColor: '#fff',
     padding: 7,
     borderRadius: 20,
   },
-  username: {
-    fontSize: 20,
+  name: {
+    fontSize: 18,
     fontFamily:'ms-bold',
     marginTop: 10,
     marginLeft:5
   },
-  handle: {
-    fontSize: 14,
+  username: {
+    fontSize: 12,
     fontFamily:'ms-regular',
     color: '#555',
-    marginLeft:5
+    marginLeft:3,
+    marginTop:13,
   },
+ 
   biography: {
     fontSize: 14,
     fontFamily:'ms-light',
     color: '#555',
     textAlign: 'center',
-    marginTop: 5,
+    marginTop: 0,
     marginLeft:5
   },
+  //followers
   stats: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom:50,
     paddingRight:30,
     position:'absolute',
-    marginLeft:165,
+    marginLeft:145,
     marginTop:20
   },
   statItem: {
     alignItems: 'center',
-    marginHorizontal: 15,
+    marginHorizontal: 18,
   },
   statCount: {
     fontSize: 16,
@@ -418,37 +447,47 @@ const styles = StyleSheet.create({
     color: '#555',
     fontFamily:'ms-light'
   },
+  //actions
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     position:'absolute',
-    marginTop: 180,
-    marginLeft:11,
+    marginTop: 140,
+    marginLeft:20,
     alignItems:'center',
   },
   followButton: {
-    backgroundColor: 'rgba(51, 65, 79, 1)',
-    padding: 10,
+    backgroundColor: '#000',
+    alignItems:'center',
+    justifyContent:'center',
     borderRadius: 8,
-    marginHorizontal: 8,
-    width:140,
-    height:35
+    marginHorizontal: 1,
+    width:137,
+    height:30.06,
+    paddingTop:3,
+    paddingRight:-6
+ 
   },
   messageButton: {
-    backgroundColor: 'rgba(51, 65, 79, 1)',
-    padding: 10,
+    backgroundColor: '#000',
+    alignItems:'center',
+    justifyContent:'center',
     borderRadius: 8,
     marginHorizontal: 5,
-    width:140,
-    height:35
+    width:137,
+    height:30.06,
+    paddingTop:3,
+    paddingRight:-6
+ 
   },
   moreButton: {
-    backgroundColor: 'rgba(51, 65, 79, 1)',
+    backgroundColor: '#000',
     alignItems:'center',
+    justifyContent:'center',
     borderRadius: 8,
     marginHorizontal: 5,
-    width:50,
-    height:35,
+    width:58,
+    height:30.06,
     paddingTop:3,
     paddingRight:-6
   },
@@ -456,7 +495,37 @@ const styles = StyleSheet.create({
     textAlign:'center',
     fontFamily:'ms-bold',
     color:'#fff',
-    fontSize:13
+    fontSize:12
+  },
+  //storyHighlights
+  storyHighlights: {
+    flexDirection: 'row',
+    justifyContent: 'space-around', // Yatay hizalama
+    marginTop: 160, // Action buttons altına boşluk ekler
+    marginLeft:-240,
+  },
+  storyCircle: {
+    backgroundColor: '#ddd',
+    height: 60,
+    width: 60,
+    borderRadius: 30,
+    justifyContent: 'center', // Dikey hizalama
+    alignItems: 'center', // Yatay hizalama
+    marginHorizontal:5
+  },
+  storyAdd: {
+    backgroundColor: 'transparent',
+    height: 60,
+    width: 60,
+    borderRadius: 30,
+    justifyContent: 'center', // Dikey hizalama
+    alignItems: 'center', // Yatay hizalama
+    marginHorizontal:5
+  },
+  storyText: {
+    color: '#fff',
+    fontSize: 18,
+    fontFamily: 'ms-bold',
   },
   grid: {
     justifyContent: 'space-around',
