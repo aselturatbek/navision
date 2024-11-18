@@ -64,7 +64,7 @@ const BottomNavigation = ({ username, profileImage, name, surname }) => {
         options={{
           tabBarLabel: () => null,
           tabBarIcon: ({ color, focused }) => (
-            <LoopIcon size={25} color={focused ? 'black' : color} />
+            <LoopIcon size={25} color={focused ? 'white' : color} />
           ),
           tabBarStyle: {
             backgroundColor: 'transparent',
