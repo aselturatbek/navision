@@ -17,7 +17,7 @@ const SplashScreen = ({ navigation }) => {
         style={styles.logo}
       />
        <View style={styles.footer}>
-       <Text style={styles.footerText}>from</Text>
+       <Text style={styles.footerText}>test</Text>
         <Image
           source={require('../assets/images/logo/ellusion_text.png')}
           style={styles.footerLogo}
