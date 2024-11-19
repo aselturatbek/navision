@@ -1,89 +1,66 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text,StyleSheet } from 'react-native';
-//firebase
-import { getFirestore, doc, onSnapshot, collection } from 'firebase/firestore';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-//components
-import TopNavigation from '../navigation/TopNavigation';
-import SideMenu from '../components/SideMenu';
-//expo
-import * as Font from 'expo-font';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
 
-const Default2 = () => {
-  const [fontsLoaded, setFontsLoaded] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [menuVisible, setMenuVisible] = useState(false);
+const Default2Screen = () => {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const loadFonts = async () => {
-    await Font.loadAsync({
-      'ms-regular': require('../assets/fonts/ms-regular.ttf'),
-      'ms-bold': require('../assets/fonts/ms-bold.ttf'),
-      'ms-light': require('../assets/fonts/ms-light.ttf'),
-      'ms-italic': require('../assets/fonts/ms-italic.ttf'),
-    });
-  };
-
-  const fetchCurrentUser = async (user) => {
-    const db = getFirestore();
-    const userRef = doc(db, 'userInfo', user.uid);
-
-    const unsubscribe = onSnapshot(userRef, (doc) => {
-      if (doc.exists()) {
-        const userData = doc.data();
-        setCurrentUser({
-          uid: user.uid,
-          email: user.email,
-          profileImage: userData.profileImage || 'https://via.placeholder.com/150',
-          displayName: userData.username || user.email.split('@')[0],
-        });
-      } else {
-        setCurrentUser(null);
-      }
-    }, (error) => {
-      console.error("Error fetching user data:", error);
-      setCurrentUser(null);
-    });
-
-    return unsubscribe;
-  };
-
-  const toggleMenu = () => {
-    setMenuVisible((prevMenuVisible) => !prevMenuVisible);
-  };
   useEffect(() => {
-    loadFonts().then(() => setFontsLoaded(true));
-
-    const auth = getAuth();
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        fetchCurrentUser(user);
-      } else {
-        setCurrentUser(null);
+    const fetchPosts = async () => {
+      try {
+        const response = await axios.get('http://192.168.1.103:3000/api/posts'); // IP adresinizi buraya ekleyin
+        setPosts(response.data);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      } finally {
+        setLoading(false);
       }
-    });
+    };
 
-    return () => unsubscribeAuth();
+    fetchPosts();
   }, []);
 
+  if (loading) {
+    return <Text>Loading...</Text>;
+  }
+
   return (
-    <View style={styles.container}>
-      <TopNavigation onMenuPress={toggleMenu} user={currentUser} />
-      <Text style={styles.title}>Work in progress :)</Text>
-     
-    </View>
+    <FlatList
+      data={posts}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
+        <View style={styles.post}>
+          <Text style={styles.title}>{item.username || 'No Username'}</Text>
+          {/* mediaUrls'deki ilk medyayı görüntü olarak çekiyoruz */}
+          {item.mediaUrls && item.mediaUrls.length > 0 && (
+            <Image
+              source={{ uri: item.mediaUrls[0] }} // İlk medya URL'sini kullan
+              style={styles.image}
+            />
+          )}
+        </View>
+      )}
+    />
   );
 };
+
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor:'#fff',
-    justifyContent:'center',
+  post: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
   },
   title: {
-    fontFamily:'ms-bold',
-    fontSize:24,
-    color:'#333',
-    textAlign:'center',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  image: {
+    width: '100%', // Görüntüyü tam genişlikte göstermek için
+    height: 200,   // Yüksekliği sabit bir boyutta ayarlayın
+    borderRadius: 10,
   },
 });
 
-export default Default2;
+export default Default2Screen;
