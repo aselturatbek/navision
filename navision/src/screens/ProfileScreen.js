@@ -190,7 +190,7 @@ const ProfileScreen = () => {
   
 
   if (!userInfo) {
-    return <Text>Loading...</Text>; // Veriler yüklenirken gösterilecek
+    return <Text>Loading</Text>; // Veriler yüklenirken gösterilecek
   }
 
   return (
