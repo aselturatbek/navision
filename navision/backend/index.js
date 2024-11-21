@@ -12,10 +12,13 @@ app.get('/', (req, res) => {
 
 // Routes
 const postsRoutes = require('./routes/posts');
-const authRoutes = require('./routes/auth/register'); 
+const registerRoute = require('./routes/auth/register'); 
+const loginRoute = require('./routes/auth/login'); 
+
 
 app.use('/api/posts', postsRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', registerRoute);
+app.use('/api/auth', loginRoute);
 
 const PORT = 3000;
 app.listen(PORT, () => {
