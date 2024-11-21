@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
+//api base
+import { API_BASE_URL } from '@env';
 
 const Default2Screen = () => {
   const [posts, setPosts] = useState([]);
@@ -9,7 +11,7 @@ const Default2Screen = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const response = await axios.get('http://192.168.1.103:3000/api/posts'); // IP adresinizi buraya ekleyin
+        const response = await axios.get(`${API_BASE_URL}/api/posts`);
         setPosts(response.data);
       } catch (error) {
         console.error('Error fetching posts:', error);

@@ -6,11 +6,16 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
+app.get('/', (req, res) => {
+  res.send('Backend is running!');
+});
+
 // Routes
 const postsRoutes = require('./routes/posts');
-const usersRoutes = require('./routes/users'); // Doğru dosya yolunu kontrol edin
+const authRoutes = require('./routes/auth/register'); 
+
 app.use('/api/posts', postsRoutes);
-app.use('/api/users', usersRoutes);
+app.use('/api/auth', authRoutes);
 
 const PORT = 3000;
 app.listen(PORT, () => {
