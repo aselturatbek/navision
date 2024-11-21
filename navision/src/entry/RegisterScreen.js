@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { View, TextInput, Alert, StyleSheet, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, ActivityIndicator,Platform } from 'react-native';
-import { auth } from '../firebase'; 
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { getFirestore, doc, setDoc , getDocs, collection} from 'firebase/firestore'; 
-import { getDatabase, ref, set } from 'firebase/database'; 
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons'; 
 import PhoneInput from 'react-native-phone-number-input';
 import { TextInputMask } from 'react-native-masked-text';
+//api,axios
+import axios from 'axios';
+import { API_BASE_URL } from '@env';
+
 
 const RegisterScreen = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -21,38 +21,30 @@ const RegisterScreen = () => {
   const [surname, setSurname] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState('');
-  const firestore = getFirestore(); 
-  const database = getDatabase(); 
-  const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [selectedGender, setSelectedGender] = useState({ erkek: false, kadın: false, diğer: false }); // Checkbox durumları
-  const [loading, setLoading] = useState(false); 
-  const [formattedPhoneNumber, setFormattedPhoneNumber] = useState(''); // Formatted phone number state
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const [loading, setLoading] = useState(false); 
+  //keyboard refs
+  const phoneInputRef = useRef(null);
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
+  const confirmPasswordInputRef = useRef(null);
+  //formatted phone number
+  const [formattedPhoneNumber, setFormattedPhoneNumber] = useState(''); 
+  //gender checkbox
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [selectedGender, setSelectedGender] = useState({ erkek: false, kadın: false, diğer: false });
+  //select gender
   const handleGenderChange = (type) => {
     const newSelectedGender = { erkek: false, kadın: false, diğer: false };
     newSelectedGender[type] = !selectedGender[type];
     setSelectedGender(newSelectedGender);
-    setGender(type); // Seçilen cinsiyet state'ini güncelle
+    setGender(type); 
     setDropdownVisible(false);
   };
-   // Kullanıcı adı doğrulama fonksiyonu (Türkçe karakter ve büyük harf içermez)
-  const handleUsernameChange = (text) => {
-    const filteredText = text
-      .toLowerCase()  // Büyük harfleri küçüğe çevir
-      .replace(/[^a-z0-9]/g, ''); // Türkçe karakterleri kaldır
-    setUsername(filteredText);
-  };
-  const checkUsernameExists = async (username) => {
-    const snapshot = await getDocs(collection(firestore, 'userInfo'));
-    return snapshot.docs.some(doc => doc.data().username === username);
-  };
-
   const handleDropdownToggle = () => {
-    setDropdownVisible(!dropdownVisible); // Dropdown'u aç/kapa
+    setDropdownVisible(!dropdownVisible); 
   };
-
   const renderGenderOptions = () => (
     <View style={styles.dropdownOptions}>
       <TouchableOpacity style={styles.option} onPress={() => handleGenderChange('erkek')}>
@@ -75,94 +67,39 @@ const RegisterScreen = () => {
       </TouchableOpacity>
     </View>
   );
-  const isEmailValid = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+   //check username input
+  const handleUsernameChange = (text) => {
+    const filteredText = text
+      .toLowerCase() 
+      .replace(/[^a-z0-9]/g, '');
+    setUsername(filteredText);
   };
-  const isPasswordValid = (password) => {
-    const re = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()\-_=+{}[\]:;"'<>,.?/~|\\])[A-Za-z\d!@#$%^&*()\-_=+{}[\]:;"'<>,.?/~|\\]{8,}$/;
-    return re.test(password);
-  };
-  
-
-
-  const phoneInputRef = useRef(null);
-  const emailInputRef = useRef(null);
-  const passwordInputRef = useRef(null);
-  const confirmPasswordInputRef = useRef(null);
-  
+ //registerUser api endpoint
   const registerUser = async () => {
-  setLoading(true);
-  try {
-    // Tüm alanların dolu olup olmadığını kontrol et
-    if (!name || !phoneNumber || !dateOfBirth || !gender) {
-      Alert.alert("Hata", "Lütfen tüm bilgileri doldurduğunuzdan emin olun.");
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
+        email,
+        password,
+        username,
+        phoneNumber,
+        name,
+        surname,
+        dateOfBirth,
+        gender,
+      });
+  
+      Alert.alert('Başarılı', response.data.message);
+      setCurrentStep(3);
+      setTimeout(() => {
+        navigation.navigate('Login');
+      }, 3000);
+    } catch (error) {
+      Alert.alert('Hata', error.response?.data?.error || 'Bir hata oluştu.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Email doğrulama
-    if (!isEmailValid(email)) {
-      Alert.alert("Hata", "Lütfen geçerli bir e-posta adresi girin.");
-      setLoading(false);
-      return;
-    }
-
-    // Şifre doğrulama
-    if (!isPasswordValid(password)) {
-      Alert.alert("Hata", "Şifre en az 8 karakter, 1 büyük harf, 1 rakam ve 1 özel karakter içermelidir.");
-      setLoading(false);
-      return;
-    }
-
-    // Şifre eşleşmesi kontrolü
-    if (password !== confirmPassword) {
-      Alert.alert("Hata", "Şifreler uyuşmuyor.");
-      setLoading(false);
-      return;
-    }
-
-    // Kullanıcı adı kontrolü
-    const usernameExists = await checkUsernameExists(username);
-    if (usernameExists) {
-      Alert.alert("Hata", "Bu kullanıcı adı zaten alınmış.");
-      setLoading(false);
-      return;
-    }
-
-    // Tüm kontroller doğruysa kullanıcıyı kaydet
-    const newUser = await createUserWithEmailAndPassword(auth, email, password);
-    await sendEmailVerification(newUser.user);
-
-    const userId = newUser.user.uid;
-
-    // Firestore'da kullanıcı bilgilerini kaydet
-    await setDoc(doc(firestore, 'userInfo', userId), {
-      username: username,
-      phoneNumber: phoneNumber,
-      email: email,
-      name: name,
-      surname: surname,
-      dateOfBirth: dateOfBirth,
-      gender: gender,
-      biography: '',
-      profileImage: ''
-    });
-
-    Alert.alert("Başarılı", "Kayıt başarılı! E-posta doğrulama linki gönderildi.");
-    setCurrentStep(3);
-
-    // Kullanıcıyı login ekranına yönlendir
-    setTimeout(() => {
-      navigation.navigate('Login');
-    }, 2000);
-
-  } catch (error) {
-    Alert.alert("Hata", error.message);
-  }
-};
-
-
+  };
   const handleNextStep = () => {
     if (currentStep < 3) setCurrentStep(currentStep + 1);
     else registerUser(); 
@@ -343,14 +280,14 @@ const RegisterScreen = () => {
               {loading ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Giriş Yap</Text>
+                <Text style={styles.buttonText}>Kayıt Ol</Text>
               )}
             </TouchableOpacity>
 
             <View style={styles.loginContainer}>
               <Text style={styles.alreadyHaveAccount}>Hesabın zaten var mı? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.loginText}>Kayıt Ol</Text>
+                <Text style={styles.loginText}>Giriş Yap</Text>
               </TouchableOpacity>
             </View>
           </View>
