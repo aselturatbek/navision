@@ -13,6 +13,9 @@ import {
 } from 'react-native';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { Ionicons } from '@expo/vector-icons';
+//api,axios
+import axios from 'axios'; 
+import { API_BASE_URL } from '@env'; 
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -25,24 +28,22 @@ const LoginScreen = ({ navigation }) => {
     Keyboard.dismiss(); // Klavyeyi kapat
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      if (!user.emailVerified) {
-        Alert.alert('Hata', 'Lütfen e-posta adresinizi doğrulayın.');
-        setLoading(false);
-        return;
-      }
-
-      Alert.alert('Giriş Başarılı', 'Hoş Geldin!');
+      // Backend'e giriş isteği
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        email,
+        password,
+      });
+  
+      Alert.alert('Giriş Başarılı', response.data.message);
       setLoading(false);
+  
+      // Ana ekrana yönlendirme
       navigation.replace('HomeTabs');
     } catch (error) {
-      Alert.alert('Hata', error.message);
+      Alert.alert('Hata', error.response?.data?.error || 'Bir hata oluştu.');
       setLoading(false);
     }
   };
-
   const handleForgotPassword = async () => {
     if (!email) {
       Alert.alert('Hata', 'Lütfen e-posta adresinizi girin.');
