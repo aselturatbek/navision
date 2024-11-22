@@ -11,133 +11,147 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
+//icons
 import SaveIcon from '../assets/icons/SaveIcon';
 import LocationIcon from '../assets/icons/LocationIcon';
 import CommentIcon from '../assets/icons/CommentIcon';
 import SendIcon from '../assets/icons/SendIcon';
 import HeartIcon from '../assets/icons/HeartIcon';
-import { getFirestore, collection, getDocs,onSnapshot,doc,updateDoc,getDoc } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+//expo
 import { Video } from 'expo-av';
+//axios
+import axios from 'axios';
+//apibaseurl
+import { API_BASE_URL } from '@env'; 
+//secure store
+import * as SecureStore from 'expo-secure-store';
+
 
 const { width: screenWidth } = Dimensions.get('window');
 
 
 const timeAgo = (timestamp) => {
-  const now = new Date();
-  const postDate = timestamp.toDate();
-  const diffInMs = now - postDate;
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  if (!timestamp || !(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
+    return 'Geçersiz tarih'; 
+  }
 
-  if (diffInHours < 1) {
-    return `${Math.floor(diffInMs / (1000 * 60))}dk`;
-  } else if (diffInHours < 24) {
-    return `${diffInHours}sa`;
+  const now = new Date();
+  const diffInMs = now - timestamp;
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+
+  if (diffInMinutes < 1) {
+    return 'Şimdi';
+  } else if (diffInMinutes < 60) {
+    return `${diffInMinutes}dk önce`;
+  } else if (diffInMinutes < 1440) { 
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    return `${diffInHours}sa önce`;
+  } else if (diffInMinutes < 10080) {
+    const diffInDays = Math.floor(diffInMinutes / 1440); 
+    return `${diffInDays}g önce`;
+  } else if (diffInMinutes < 40320) { 
+    const diffInWeeks = Math.floor(diffInMinutes / 10080); 
+    return `${diffInWeeks}h önce`;
   } else {
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}gün`;
+    const diffInMonths = Math.floor(diffInMinutes / 40320); 
+    return `${diffInMonths}ay önce`;
   }
 };
+
 
 
 const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const firestore = getFirestore();
-  const storage = getStorage();
   const scrollX = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    console.log('User prop in PostFeed:', user);
+  }, [user]);
+  
   
 
-  // Postları dinlemek ve güncellemek için onSnapshot kullanıyoruz.
-  const fetchPosts = () => {
-    const unsubscribe = onSnapshot(collection(firestore, 'posts'), async (querySnapshot) => {
-      const fetchedPosts = await Promise.all(
-        querySnapshot.docs.map(async (doc) => {
-          const data = doc.data();
-
-          // Profil resmini ve medya dosyalarını Firebase Storage'dan çekme
-          try {
-            if (data.profileImage) {
-              const profileImageUrl = await getDownloadURL(ref(storage, data.profileImage));
-              data.profileImage = profileImageUrl;
-            }
-
-            if (data.mediaUrls && data.mediaUrls.length > 0) {
-              const mediaUrls = await Promise.all(
-                data.mediaUrls.map(async (url) => {
-                  const mediaUrl = await getDownloadURL(ref(storage, url));
-                  return { uri: mediaUrl, type: url.type };
-                })
-              );
-              data.mediaUrls = mediaUrls;
-            }
-          } catch (error) {
-            console.error('Error fetching media:', error);
-          }
-
-          return { id: doc.id, ...data };
-        })
-      );
-
-      const sortedPosts = fetchedPosts.sort((a, b) => b.timestamp.toDate() - a.timestamp.toDate());
-      setPosts(sortedPosts);
-      setLoading(false);  // Loading bittiğinde false olarak ayarlanır
-    });
-
-    return () => unsubscribe(); // Bileşen kaldırıldığında dinleyiciyi kaldır.
+  // fetching posts api
+  const fetchPosts = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/posts`);
+      const formattedPosts = response.data.map((post) => {
+        if (post.timestamp && post.timestamp._seconds) {
+          post.timestamp = new Date(post.timestamp._seconds * 1000);
+        } else if (typeof post.timestamp === 'string' || typeof post.timestamp === 'number') {
+          post.timestamp = new Date(post.timestamp); 
+        } else {
+          console.warn('Invalid timestamp format:', post.timestamp);
+          post.timestamp = null;
+        }
+        return post;
+      });
+      setPosts(formattedPosts);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      setLoading(false);
+    }
   };
+  
+  
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+  
 
   useEffect(() => {
     fetchPosts();
   }, []);
+  
   const handleLike = async (postId) => {
-    const currentUser = user.username; // Kullanıcı adını al
-    const postRef = doc(firestore, 'posts', postId);
+    try {
+      const token = await SecureStore.getItemAsync('accessToken'); // currentUser authorization icin kullaniliyor bu
+      if (!token) {
+        console.error('Access token bulunamadı.');
+        return;
+      }
   
-    const postDoc = await getDoc(postRef);
-    const postData = postDoc.data();
-    const likedBy = postData.likedBy || [];
-  
-    const isLiked = likedBy.includes(currentUser); // Kullanıcının beğenip beğenmediğini kontrol et
-  
-    // Beğeniyi güncelle
-    let updatedLikedBy;
-    if (isLiked) {
-      updatedLikedBy = likedBy.filter(username => username !== currentUser);
-    } else {
-      updatedLikedBy = [...likedBy, currentUser];
-    }
-  
-    await updateDoc(postRef, {
-      likedBy: updatedLikedBy,
-      likes: updatedLikedBy.length,
-    });
-  
-    // Postları güncelleyin
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
-        post.id === postId ? { ...post, isLiked: !isLiked } : post
-      )
-    );
-  };
-  const renderMediaItem = ({ item }) => {
-    if (!item || !item.uri) return null; // Hatalı item varsa döndürme
-  
-    if (item.type === 'video') {
-      return (
-        <Video
-          source={{ uri: item.uri }}
-          style={styles.mediaVideo} // Aynı media stili
-          resizeMode="cover"
-          shouldPlay
-          isLooping
-          muted={false}
-        />
+      const response = await axios.post(
+        `${API_BASE_URL}/api/posts/like`,
+        { postId },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-    }
   
-    return <Image source={{ uri: item.uri }} style={styles.mediaVideo} />;
+      const { likes, likedBy } = response.data;
+  
+      //like durumunda postu guncelle
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
+          post.id === postId ? { ...post, likes, likedBy } : post
+        )
+      );
+    } catch (error) {
+      console.error('Error liking post:', error.response?.data || error.message);
+    }
   };
+  
+  
+  const renderMediaItem = ({ item }) => {
+    if (!item) return null; 
+
+    const uri = typeof item === 'string' ? item : item.uri;
+
+    if (item.type === 'video') {
+        return (
+            <Video
+                source={{ uri }}
+                style={styles.mediaVideo}
+                resizeMode="cover"
+                shouldPlay
+                isLooping
+                muted={false}
+            />
+        );
+    }
+
+    return <Image source={{ uri }} style={styles.mediaVideo} />;
+};
+
   
   
   
@@ -222,7 +236,7 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
                 {`${item.username} `}
               </Text>
               <Text style={styles.timestampText}>
-                {` • ${timeAgo(item.timestamp)}`}
+              {` • ${timeAgo(item.timestamp)}`}
               </Text>
             </Text>
           </View>
@@ -286,9 +300,9 @@ const styles = StyleSheet.create({
     width: screenWidth - 35,
     height: 370,
     borderRadius: 30,
-    overflow: 'hidden', // Medya taşmasını önlemek için
+    overflow: 'hidden', 
     marginBottom: 10, 
-    alignSelf: 'center', // Ortaya hizalama
+    alignSelf: 'center', 
   },
   media: {
     width: '100%',
@@ -313,22 +327,22 @@ const styles = StyleSheet.create({
   },
   dotsContainer: {
     position: 'absolute',
-    bottom: 15, // Fotoğrafın hemen altına yerleştirmek için
+    bottom: 15, 
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10, // Dotsları en üst katmana alır
-    elevation: 10, // Android için katman sıralaması
+    zIndex: 10, 
+    elevation: 10, 
   
-    paddingVertical: 5, // Dotsların çevresine boşluk
-    borderRadius: 10, // Hafif yuvarlatılmış görünüm
+    paddingVertical: 5, 
+    borderRadius: 10,
   },
   dot: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ffffff', // Dotslar için beyaz renk
+    backgroundColor: '#ffffff', 
     marginHorizontal: 4,
   },
   icon2ColumnRow: {
@@ -339,12 +353,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     marginLeft: 4,
     marginTop: 50,
-    position: 'relative', // Ana kapsayıcı pozisyonu
+    position: 'relative', 
   },
   locationContainer: {
-    position: 'absolute', // Metni bağımsız olarak konumlandırmak için
-    top: 3, // Yukarı taşıma
-    left: 29, // Sola taşıma
+    position: 'absolute', 
+    top: 3, 
+    left: 29, 
   },
   location: {
     fontSize: 12,
@@ -372,7 +386,7 @@ const styles = StyleSheet.create({
   },
   timestampText: {
     fontSize: 10,
-    color: '#bbb', // Hafif gri renkte timestamp
+    color: '#bbb',
     fontFamily: 'ms-regular',
     marginTop: 2,
   },
@@ -382,9 +396,9 @@ const styles = StyleSheet.create({
     marginTop: -3,
     marginLeft: 32,
     fontFamily: 'ms-regular',
-    maxWidth: screenWidth - 240, // Metnin taşmaması için genişlik sınırlaması
-    lineHeight: 14, // Yazıyı sıkıştırarak daha okunabilir hale getirmek için
-    flexWrap: 'wrap', // Yazıyı sarmalayıp birden fazla satıra yaymak
+    maxWidth: screenWidth - 240, 
+    lineHeight: 14, 
+    flexWrap: 'wrap', 
   },
   
   iconRow: {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
+import { View, StyleSheet, FlatList, ActivityIndicator} from 'react-native';
 import CommentsModal from '../modals/CommentsModal';
 import ShareModal from '../modals/ShareModal';
 import StoryModal from '../modals/StoryModal';
@@ -13,6 +13,13 @@ import TopNavigation from '../navigation/TopNavigation';
 import SideMenu from '../components/SideMenu';
 // expo
 import * as Font from 'expo-font';
+//axios
+import axios from 'axios';
+//apibaseurl
+import { API_BASE_URL } from '@env'; 
+//secure store
+import * as SecureStore from 'expo-secure-store';
+
 
 const HomeScreen = () => {
   const [user, setUser] = useState(null);
@@ -35,31 +42,35 @@ const HomeScreen = () => {
       'ms-italic': require('../assets/fonts/ms-italic.ttf'),
     });
   };
-
-  const fetchCurrentUser = async (user) => {
-    const db = getFirestore();
-    const userRef = doc(db, 'userInfo', user.uid);
-
-    const unsubscribe = onSnapshot(userRef, (doc) => {
-      if (doc.exists()) {
-        const userData = doc.data();
-        setCurrentUser({
-          uid: user.uid,
-          email: user.email,
-          profileImage: userData.profileImage || 'https://via.placeholder.com/150',
-          displayName: userData.username || user.email.split('@')[0],
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync('accessToken');
+        if (!token) {
+          console.error('Access token bulunamadı.');
+          navigation.navigate('Login');
+          return;
+        }
+  
+        const response = await axios.get(`${API_BASE_URL}/api/user`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-      } else {
-        setCurrentUser(null);
+  
+        setCurrentUser(response.data);
+      } catch (error) {
+        console.error('Kullanıcı bilgileri alınırken hata:', error.message);
+        setCurrentUser(null); // Hata durumunda null olarak ayarlayın
       }
-    }, (error) => {
-      console.error("Error fetching user data:", error);
-      setCurrentUser(null);
-    });
-
-    return unsubscribe;
-  };
-
+    };
+  
+    fetchCurrentUser();
+  }, []);
+  useEffect(() => {
+    console.log('Current User in HomeScreen:', currentUser);
+  }, [currentUser]);
+  
   const toggleMenu = () => {
     setMenuVisible((prevMenuVisible) => !prevMenuVisible);
   };
@@ -77,7 +88,7 @@ const HomeScreen = () => {
 
     return () => unsubscribeAuth();
   }, []);
-
+  
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 2000);
@@ -171,26 +182,34 @@ const HomeScreen = () => {
     setIsShareModalVisible(false);
   };
 
-  const renderContent = () => (
-    <>
-      <StoryFeed groupedStories={groupedStories} handleStoryPress={handleStoryPress} />
-      <StoryModal visible={isStoryModalVisible} onClose={() => setIsStoryModalVisible(false)} stories={currentUserStories} />
-      <PostFeed
-        user={user}
-        posts={posts}
-        handleCommentPress={handleCommentPress}
-        handleSharePress={handleSharePress}
-      />
-      <CommentsModal
-        visible={isCommentsModalVisible}
-        onClose={closeCommentsModal}
-        postId={selectedPostId}
-        user={user}
-      />
-      <ShareModal visible={isShareModalVisible} onClose={closeShareModal} />
-    </>
-  );
-
+  const renderContent = () => {
+    if (!currentUser) {
+      return (
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      );
+    }
+  
+    return (
+      <>
+        <StoryFeed groupedStories={groupedStories} handleStoryPress={handleStoryPress} />
+        <StoryModal visible={isStoryModalVisible} onClose={() => setIsStoryModalVisible(false)} stories={currentUserStories} />
+        <PostFeed
+          user={currentUser} // currentUser null değilse gönderiliyor
+          handleCommentPress={handleCommentPress}
+          handleSharePress={handleSharePress}
+        />
+        <CommentsModal
+          visible={isCommentsModalVisible}
+          onClose={closeCommentsModal}
+          postId={selectedPostId}
+          user={user}
+        />
+        <ShareModal visible={isShareModalVisible} onClose={closeShareModal} />
+      </>
+    );
+  };
   return (
     <RefreshComponent refreshing={refreshing} onRefreshAction={onRefresh}>
       <View style={styles.container}>
