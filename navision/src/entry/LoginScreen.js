@@ -16,6 +16,9 @@ import { Ionicons } from '@expo/vector-icons';
 //api,axios
 import axios from 'axios'; 
 import { API_BASE_URL } from '@env'; 
+//secure store
+import * as SecureStore from 'expo-secure-store';
+
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -25,25 +28,40 @@ const LoginScreen = ({ navigation }) => {
   const auth = getAuth();
 
   const handleLogin = async () => {
-    Keyboard.dismiss(); // Klavyeyi kapat
+    Keyboard.dismiss();
     setLoading(true);
+  
+    if (!email || !password) {
+      Alert.alert('Hata', 'Lütfen e-posta ve şifre girin.');
+      setLoading(false);
+      return;
+    }
+  
     try {
-      // Backend'e giriş isteği
       const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email,
         password,
       });
   
-      Alert.alert('Giriş Başarılı', response.data.message);
+      const { accessToken, refreshToken, message } = response.data;
+  
+      //access-refresh
+      await SecureStore.setItemAsync('accessToken', accessToken);
+      await SecureStore.setItemAsync('refreshToken', refreshToken);
+  
+      Alert.alert('Giriş Başarılı', message);
       setLoading(false);
   
-      // Ana ekrana yönlendirme
+    
       navigation.replace('HomeTabs');
     } catch (error) {
-      Alert.alert('Hata', error.response?.data?.error || 'Bir hata oluştu.');
+      console.error('Giriş Hatası:', error.response?.data || error.message);
+      const errorMessage = error.response?.data?.error || 'Bir hata mi oluştu.';
+      Alert.alert('Hata', errorMessage);
       setLoading(false);
     }
   };
+  
   const handleForgotPassword = async () => {
     if (!email) {
       Alert.alert('Hata', 'Lütfen e-posta adresinizi girin.');
