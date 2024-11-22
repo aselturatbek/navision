@@ -21,8 +21,9 @@ const postsRoutes = require('./routes/posts');
 const registerRoute = require('./routes/auth/register'); 
 const loginRoute = require('./routes/auth/login'); 
 const refreshTokenRoute = require('./routes/auth/refreshToken'); 
+const userRoute = require('./routes/user');
 
-
+app.use('/api/user', userRoute);
 app.use('/api/posts', postsRoutes);
 app.use('/api/auth', registerRoute);
 app.use('/api/auth', loginRoute);
