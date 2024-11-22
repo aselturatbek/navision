@@ -32,7 +32,7 @@ const { width: screenWidth } = Dimensions.get('window');
 
 const timeAgo = (timestamp) => {
   if (!timestamp || !(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
-    return 'Geçersiz tarih'; // Hatalı veya geçersiz tarih
+    return 'Geçersiz tarih'; 
   }
 
   const now = new Date();
@@ -43,17 +43,17 @@ const timeAgo = (timestamp) => {
     return 'Şimdi';
   } else if (diffInMinutes < 60) {
     return `${diffInMinutes}dk önce`;
-  } else if (diffInMinutes < 1440) { // 24 saat
+  } else if (diffInMinutes < 1440) { 
     const diffInHours = Math.floor(diffInMinutes / 60);
     return `${diffInHours}sa önce`;
-  } else if (diffInMinutes < 10080) { // 7 gün
-    const diffInDays = Math.floor(diffInMinutes / 1440); // 1440 dakika = 1 gün
+  } else if (diffInMinutes < 10080) {
+    const diffInDays = Math.floor(diffInMinutes / 1440); 
     return `${diffInDays}g önce`;
-  } else if (diffInMinutes < 40320) { // 4 hafta
-    const diffInWeeks = Math.floor(diffInMinutes / 10080); // 10080 dakika = 1 hafta
+  } else if (diffInMinutes < 40320) { 
+    const diffInWeeks = Math.floor(diffInMinutes / 10080); 
     return `${diffInWeeks}h önce`;
   } else {
-    const diffInMonths = Math.floor(diffInMinutes / 40320); // 40320 dakika = 1 ay
+    const diffInMonths = Math.floor(diffInMinutes / 40320); 
     return `${diffInMonths}ay önce`;
   }
 };
@@ -70,18 +70,18 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   
   
 
-  // Postları dinlemek ve güncellemek için onSnapshot kullanıyoruz.
+  // fetching posts api
   const fetchPosts = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/posts`);
       const formattedPosts = response.data.map((post) => {
         if (post.timestamp && post.timestamp._seconds) {
-          post.timestamp = new Date(post.timestamp._seconds * 1000); // Firestore Timestamp'i Date'e çevir
+          post.timestamp = new Date(post.timestamp._seconds * 1000);
         } else if (typeof post.timestamp === 'string' || typeof post.timestamp === 'number') {
-          post.timestamp = new Date(post.timestamp); // String veya Unix Timestamp ise Date'e çevir
+          post.timestamp = new Date(post.timestamp); 
         } else {
           console.warn('Invalid timestamp format:', post.timestamp);
-          post.timestamp = null; // Geçersiz timestamp için null ata
+          post.timestamp = null;
         }
         return post;
       });
@@ -105,7 +105,7 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   
   const handleLike = async (postId) => {
     try {
-      const token = await SecureStore.getItemAsync('accessToken'); // Access token alın
+      const token = await SecureStore.getItemAsync('accessToken'); // currentUser authorization icin kullaniliyor bu
       if (!token) {
         console.error('Access token bulunamadı.');
         return;
@@ -119,7 +119,7 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   
       const { likes, likedBy } = response.data;
   
-      // Postu güncelle
+      //like durumunda postu guncelle
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
           post.id === postId ? { ...post, likes, likedBy } : post
@@ -132,7 +132,7 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   
   
   const renderMediaItem = ({ item }) => {
-    if (!item) return null; // Hatalı item varsa döndürme
+    if (!item) return null; 
 
     const uri = typeof item === 'string' ? item : item.uri;
 
@@ -300,9 +300,9 @@ const styles = StyleSheet.create({
     width: screenWidth - 35,
     height: 370,
     borderRadius: 30,
-    overflow: 'hidden', // Medya taşmasını önlemek için
+    overflow: 'hidden', 
     marginBottom: 10, 
-    alignSelf: 'center', // Ortaya hizalama
+    alignSelf: 'center', 
   },
   media: {
     width: '100%',
@@ -327,22 +327,22 @@ const styles = StyleSheet.create({
   },
   dotsContainer: {
     position: 'absolute',
-    bottom: 15, // Fotoğrafın hemen altına yerleştirmek için
+    bottom: 15, 
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10, // Dotsları en üst katmana alır
-    elevation: 10, // Android için katman sıralaması
+    zIndex: 10, 
+    elevation: 10, 
   
-    paddingVertical: 5, // Dotsların çevresine boşluk
-    borderRadius: 10, // Hafif yuvarlatılmış görünüm
+    paddingVertical: 5, 
+    borderRadius: 10,
   },
   dot: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ffffff', // Dotslar için beyaz renk
+    backgroundColor: '#ffffff', 
     marginHorizontal: 4,
   },
   icon2ColumnRow: {
@@ -353,12 +353,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     marginLeft: 4,
     marginTop: 50,
-    position: 'relative', // Ana kapsayıcı pozisyonu
+    position: 'relative', 
   },
   locationContainer: {
-    position: 'absolute', // Metni bağımsız olarak konumlandırmak için
-    top: 3, // Yukarı taşıma
-    left: 29, // Sola taşıma
+    position: 'absolute', 
+    top: 3, 
+    left: 29, 
   },
   location: {
     fontSize: 12,
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   timestampText: {
     fontSize: 10,
-    color: '#bbb', // Hafif gri renkte timestamp
+    color: '#bbb',
     fontFamily: 'ms-regular',
     marginTop: 2,
   },
@@ -396,9 +396,9 @@ const styles = StyleSheet.create({
     marginTop: -3,
     marginLeft: 32,
     fontFamily: 'ms-regular',
-    maxWidth: screenWidth - 240, // Metnin taşmaması için genişlik sınırlaması
-    lineHeight: 14, // Yazıyı sıkıştırarak daha okunabilir hale getirmek için
-    flexWrap: 'wrap', // Yazıyı sarmalayıp birden fazla satıra yaymak
+    maxWidth: screenWidth - 240, 
+    lineHeight: 14, 
+    flexWrap: 'wrap', 
   },
   
   iconRow: {
