@@ -11,133 +11,147 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
+//icons
 import SaveIcon from '../assets/icons/SaveIcon';
 import LocationIcon from '../assets/icons/LocationIcon';
 import CommentIcon from '../assets/icons/CommentIcon';
 import SendIcon from '../assets/icons/SendIcon';
 import HeartIcon from '../assets/icons/HeartIcon';
-import { getFirestore, collection, getDocs,onSnapshot,doc,updateDoc,getDoc } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+//expo
 import { Video } from 'expo-av';
+//axios
+import axios from 'axios';
+//apibaseurl
+import { API_BASE_URL } from '@env'; 
+//secure store
+import * as SecureStore from 'expo-secure-store';
+
 
 const { width: screenWidth } = Dimensions.get('window');
 
 
 const timeAgo = (timestamp) => {
-  const now = new Date();
-  const postDate = timestamp.toDate();
-  const diffInMs = now - postDate;
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  if (!timestamp || !(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
+    return 'Geçersiz tarih'; // Hatalı veya geçersiz tarih
+  }
 
-  if (diffInHours < 1) {
-    return `${Math.floor(diffInMs / (1000 * 60))}dk`;
-  } else if (diffInHours < 24) {
-    return `${diffInHours}sa`;
+  const now = new Date();
+  const diffInMs = now - timestamp;
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+
+  if (diffInMinutes < 1) {
+    return 'Şimdi';
+  } else if (diffInMinutes < 60) {
+    return `${diffInMinutes}dk önce`;
+  } else if (diffInMinutes < 1440) { // 24 saat
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    return `${diffInHours}sa önce`;
+  } else if (diffInMinutes < 10080) { // 7 gün
+    const diffInDays = Math.floor(diffInMinutes / 1440); // 1440 dakika = 1 gün
+    return `${diffInDays}g önce`;
+  } else if (diffInMinutes < 40320) { // 4 hafta
+    const diffInWeeks = Math.floor(diffInMinutes / 10080); // 10080 dakika = 1 hafta
+    return `${diffInWeeks}h önce`;
   } else {
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}gün`;
+    const diffInMonths = Math.floor(diffInMinutes / 40320); // 40320 dakika = 1 ay
+    return `${diffInMonths}ay önce`;
   }
 };
+
 
 
 const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const firestore = getFirestore();
-  const storage = getStorage();
   const scrollX = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    console.log('User prop in PostFeed:', user);
+  }, [user]);
+  
   
 
   // Postları dinlemek ve güncellemek için onSnapshot kullanıyoruz.
-  const fetchPosts = () => {
-    const unsubscribe = onSnapshot(collection(firestore, 'posts'), async (querySnapshot) => {
-      const fetchedPosts = await Promise.all(
-        querySnapshot.docs.map(async (doc) => {
-          const data = doc.data();
-
-          // Profil resmini ve medya dosyalarını Firebase Storage'dan çekme
-          try {
-            if (data.profileImage) {
-              const profileImageUrl = await getDownloadURL(ref(storage, data.profileImage));
-              data.profileImage = profileImageUrl;
-            }
-
-            if (data.mediaUrls && data.mediaUrls.length > 0) {
-              const mediaUrls = await Promise.all(
-                data.mediaUrls.map(async (url) => {
-                  const mediaUrl = await getDownloadURL(ref(storage, url));
-                  return { uri: mediaUrl, type: url.type };
-                })
-              );
-              data.mediaUrls = mediaUrls;
-            }
-          } catch (error) {
-            console.error('Error fetching media:', error);
-          }
-
-          return { id: doc.id, ...data };
-        })
-      );
-
-      const sortedPosts = fetchedPosts.sort((a, b) => b.timestamp.toDate() - a.timestamp.toDate());
-      setPosts(sortedPosts);
-      setLoading(false);  // Loading bittiğinde false olarak ayarlanır
-    });
-
-    return () => unsubscribe(); // Bileşen kaldırıldığında dinleyiciyi kaldır.
+  const fetchPosts = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/posts`);
+      const formattedPosts = response.data.map((post) => {
+        if (post.timestamp && post.timestamp._seconds) {
+          post.timestamp = new Date(post.timestamp._seconds * 1000); // Firestore Timestamp'i Date'e çevir
+        } else if (typeof post.timestamp === 'string' || typeof post.timestamp === 'number') {
+          post.timestamp = new Date(post.timestamp); // String veya Unix Timestamp ise Date'e çevir
+        } else {
+          console.warn('Invalid timestamp format:', post.timestamp);
+          post.timestamp = null; // Geçersiz timestamp için null ata
+        }
+        return post;
+      });
+      setPosts(formattedPosts);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      setLoading(false);
+    }
   };
+  
+  
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+  
 
   useEffect(() => {
     fetchPosts();
   }, []);
+  
   const handleLike = async (postId) => {
-    const currentUser = user.username; // Kullanıcı adını al
-    const postRef = doc(firestore, 'posts', postId);
+    try {
+      const token = await SecureStore.getItemAsync('accessToken'); // Access token alın
+      if (!token) {
+        console.error('Access token bulunamadı.');
+        return;
+      }
   
-    const postDoc = await getDoc(postRef);
-    const postData = postDoc.data();
-    const likedBy = postData.likedBy || [];
-  
-    const isLiked = likedBy.includes(currentUser); // Kullanıcının beğenip beğenmediğini kontrol et
-  
-    // Beğeniyi güncelle
-    let updatedLikedBy;
-    if (isLiked) {
-      updatedLikedBy = likedBy.filter(username => username !== currentUser);
-    } else {
-      updatedLikedBy = [...likedBy, currentUser];
-    }
-  
-    await updateDoc(postRef, {
-      likedBy: updatedLikedBy,
-      likes: updatedLikedBy.length,
-    });
-  
-    // Postları güncelleyin
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
-        post.id === postId ? { ...post, isLiked: !isLiked } : post
-      )
-    );
-  };
-  const renderMediaItem = ({ item }) => {
-    if (!item || !item.uri) return null; // Hatalı item varsa döndürme
-  
-    if (item.type === 'video') {
-      return (
-        <Video
-          source={{ uri: item.uri }}
-          style={styles.mediaVideo} // Aynı media stili
-          resizeMode="cover"
-          shouldPlay
-          isLooping
-          muted={false}
-        />
+      const response = await axios.post(
+        `${API_BASE_URL}/api/posts/like`,
+        { postId },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-    }
   
-    return <Image source={{ uri: item.uri }} style={styles.mediaVideo} />;
+      const { likes, likedBy } = response.data;
+  
+      // Postu güncelle
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
+          post.id === postId ? { ...post, likes, likedBy } : post
+        )
+      );
+    } catch (error) {
+      console.error('Error liking post:', error.response?.data || error.message);
+    }
   };
+  
+  
+  const renderMediaItem = ({ item }) => {
+    if (!item) return null; // Hatalı item varsa döndürme
+
+    const uri = typeof item === 'string' ? item : item.uri;
+
+    if (item.type === 'video') {
+        return (
+            <Video
+                source={{ uri }}
+                style={styles.mediaVideo}
+                resizeMode="cover"
+                shouldPlay
+                isLooping
+                muted={false}
+            />
+        );
+    }
+
+    return <Image source={{ uri }} style={styles.mediaVideo} />;
+};
+
   
   
   
@@ -222,7 +236,7 @@ const PostFeed = ({ user, handleCommentPress, handleSharePress }) => {
                 {`${item.username} `}
               </Text>
               <Text style={styles.timestampText}>
-                {` • ${timeAgo(item.timestamp)}`}
+              {` • ${timeAgo(item.timestamp)}`}
               </Text>
             </Text>
           </View>
